@@ -325,6 +325,28 @@ label:first-child{margin-top:0;}
 .sheet-header h2{margin:0;font-size:22px;color:var(--teal-950);}
 .sheet-close{background:none;border:none;font-size:22px;color:var(--ink-600);line-height:1;padding:4px;}
 
+/* Order Admin: tampil penuh di layar HP dan tombol simpan tetap mudah dijangkau */
+.admin-order-sheet{
+  height:100dvh;
+  max-height:100dvh;
+  border-radius:0;
+  padding-top:calc(10px + var(--safe-top));
+}
+.admin-order-header{justify-content:flex-end;margin-bottom:4px;}
+.admin-order-sheet #btnSaveAdminOrder{
+  position:sticky;
+  bottom:0;
+  z-index:3;
+  box-shadow:0 -8px 18px rgba(255,253,247,.92);
+  margin-bottom:0 !important;
+}
+@supports not (height:100dvh){
+  .admin-order-sheet{height:100vh;max-height:100vh;}
+}
+@media (min-width:481px){
+  .admin-order-sheet{max-width:480px;border-radius:16px 16px 0 0;}
+}
+
 /* ===== SAVING PROGRESS POPUP ===== */
 .saving-spinner{
   width:52px;height:52px;margin:4px auto 14px;
@@ -384,6 +406,22 @@ label:first-child{margin-top:0;}
 .change-row{display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:4px 0;color:var(--teal-800);}
 .change-row.negative{color:var(--rust-600);}
 
+/* ===== ORDERAN ADMIN ===== */
+.admin-order-list{display:flex;flex-direction:column;gap:9px;}
+.admin-order-card{background:var(--white);border:1.5px solid var(--line);border-radius:var(--radius);padding:12px;}
+.admin-order-head{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.admin-order-no{font-weight:800;color:var(--teal-950);font-size:13px;flex:1;}
+.status-pill{font-size:10px;font-weight:800;border-radius:999px;padding:5px 8px;}
+.status-pill.pending{background:var(--gold-100);color:var(--teal-950);border:1px solid var(--gold-500);}
+.status-pill.done{background:#e4f1ec;color:var(--teal-800);border:1px solid #b9d7ce;}
+.admin-order-items{font-size:11.5px;color:var(--ink-600);line-height:1.55;margin-bottom:7px;}
+.admin-order-foot{display:flex;align-items:center;gap:8px;}
+.admin-order-total{font-family:'Bebas Neue';font-size:19px;color:var(--rust-600);flex:1;}
+.admin-order-meta{font-size:10px;color:var(--ink-400);margin-top:3px;}
+.admin-order-actions{display:flex;gap:7px;margin-top:9px;}
+.admin-order-actions .btn{padding:9px 11px;font-size:12px;}
+.admin-cart-total{background:var(--teal-950);color:var(--cream-50);border-radius:10px;padding:10px 12px;margin-top:12px;display:flex;justify-content:space-between;align-items:center;}
+.admin-cart-total b{font-family:'Bebas Neue';font-size:21px;color:var(--gold-500);}
 /* ===== MENU MANAGEMENT ===== */
 .menu-list-row{
   display:flex;align-items:center;gap:10px;
@@ -555,6 +593,15 @@ label:first-child{margin-top:0;}
       </div>
     </section>
 
+    <!-- ================= SCREEN: ORDERAN ADMIN ================= -->
+    <section class="screen" id="screen-order-admin">
+      <h2 class="section-title">Orderan Admin</h2>
+      <button class="btn btn-gold btn-block" id="btnAddAdminOrder" style="margin-bottom:14px;">＋ Tambah Orderan</button>
+      <div class="subsection-title">Daftar Orderan</div>
+      <div id="adminOrderList" class="admin-order-list"></div>
+      <div class="empty-state" id="adminOrderEmpty" style="display:none;">Belum ada orderan admin.</div>
+    </section>
+
     <!-- ================= SCREEN: MENU ================= -->
     <section class="screen" id="screen-menu">
       <h2 class="section-title">Kelola Menu</h2>
@@ -659,6 +706,10 @@ label:first-child{margin-top:0;}
       <svg viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l3-8H5.4M7 13L5.4 5M7 13l-2.3 4.6A1 1 0 0 0 5.6 19H18M9 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM19 22a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>
       Kasir
     </button>
+    <button class="dock-btn" data-screen="order-admin">
+      <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5M8 17h8"/></svg>
+      Order Admin
+    </button>
     <button class="dock-btn" data-screen="menu">
       <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       Menu
@@ -672,6 +723,22 @@ label:first-child{margin-top:0;}
       Kas Keluar
     </button>
   </nav>
+
+  <!-- OVERLAY: BUAT ORDERAN ADMIN -->
+  <div class="overlay" id="overlayAdminOrder">
+    <div class="sheet admin-order-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header admin-order-header">
+        <button class="sheet-close" data-close="overlayAdminOrder">&times;</button>
+      </div>
+      <div class="tabs" id="adminCategoryTabs"></div>
+      <div class="menu-grid" id="adminMenuGrid"></div>
+      <div class="empty-state" id="adminMenuEmpty" style="display:none;">Belum ada menu.</div>
+      <div id="adminCartList" style="margin-top:12px;"></div>
+      <div class="admin-cart-total"><span>Total Orderan</span><b id="adminCartTotal">Rp0</b></div>
+      <button class="btn btn-gold btn-block" id="btnSaveAdminOrder" style="margin-top:10px;padding:15px;font-size:15px;">Simpan Orderan</button>
+    </div>
+  </div>
 
   <!-- OVERLAY: KERANJANG / PEMBAYARAN -->
   <div class="overlay" id="overlayCart">
@@ -821,6 +888,10 @@ let searchTerm = '';
 let paymentMethod = null;
 let editingMenuId = null;
 let pendingDelete = null; // {type,id}
+let adminCart = [];
+let adminActiveCategory = null;
+let adminSearchTerm = '';
+let pendingAdminOrderId = null;
 
 /* ============ HELPERS ============ */
 function formatRupiah(n){
@@ -900,6 +971,7 @@ document.querySelectorAll('.dock-btn').forEach(btn=>{
     document.getElementById('cartBar').style.display = btn.dataset.screen==='kasir' ? '' : 'none';
     updateCartBar();
     if(btn.dataset.screen==='laporan') loadReport();
+    if(btn.dataset.screen==='order-admin') loadAdminOrders();
   });
 });
 
@@ -910,6 +982,8 @@ db.collection('menu').orderBy('name').onSnapshot(snap=>{
   renderMenuGrid();
   renderMenuManageList();
   renderCategoryDatalist();
+  renderAdminCategoryTabs();
+  renderAdminMenuGrid();
 }, err=>{
   console.error(err);
   showToast('Gagal memuat menu: cek koneksi Firebase');
@@ -965,6 +1039,88 @@ document.getElementById('searchMenu').addEventListener('input', (e)=>{
   searchTerm = e.target.value;
   renderMenuGrid();
 });
+
+/* ============ ORDERAN ADMIN ============ */
+function renderAdminCategoryTabs(){
+  const cats = [...new Set(menuItems.map(m=>m.category).filter(Boolean))];
+  if(!adminActiveCategory || !cats.includes(adminActiveCategory)) adminActiveCategory = cats[0] || null;
+  const wrap = document.getElementById('adminCategoryTabs');
+  if(!wrap) return;
+  wrap.innerHTML = cats.map(c=>`<button class="tab-chip ${c===adminActiveCategory?'active':''}" data-cat="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join('');
+  wrap.querySelectorAll('.tab-chip').forEach(chip=>chip.addEventListener('click',()=>{
+    adminActiveCategory=chip.dataset.cat; renderAdminCategoryTabs(); renderAdminMenuGrid();
+  }));
+}
+function renderAdminMenuGrid(){
+  const grid=document.getElementById('adminMenuGrid'); if(!grid) return;
+  let items=menuItems;
+  if(adminActiveCategory) items=items.filter(m=>m.category===adminActiveCategory);
+  if(adminSearchTerm) items=items.filter(m=>m.name.toLowerCase().includes(adminSearchTerm.toLowerCase()));
+  document.getElementById('adminMenuEmpty').style.display=menuItems.length?'none':'block';
+  if(items.length===0 && menuItems.length){ grid.innerHTML='<div class="empty-state" style="grid-column:1/-1;">Menu tidak ditemukan.</div>'; return; }
+  grid.innerHTML=items.map(m=>{
+    const c=adminCart.find(x=>x.id===m.id);
+    return `<button class="menu-item ${c?'in-cart':''}" data-id="${m.id}"><span class="qty-tag">${c?c.qty:''}</span><div class="name">${escapeHtml(m.name)}</div><div class="price">${formatRupiah(m.price)}</div></button>`;
+  }).join('');
+  grid.querySelectorAll('.menu-item').forEach(el=>el.addEventListener('click',()=>addToAdminCart(el.dataset.id)));
+}
+function addToAdminCart(id){
+  const item=menuItems.find(m=>m.id===id); if(!item) return;
+  const c=adminCart.find(x=>x.id===id);
+  if(c)c.qty++; else adminCart.push({id:item.id,name:item.name,price:item.price,qty:1});
+  renderAdminMenuGrid(); renderAdminCart();
+}
+function changeAdminQty(id,delta){
+  const c=adminCart.find(x=>x.id===id); if(!c)return; c.qty+=delta; if(c.qty<=0)adminCart=adminCart.filter(x=>x.id!==id);
+  renderAdminMenuGrid(); renderAdminCart();
+}
+function adminCartTotal(){return adminCart.reduce((s,c)=>s+c.price*c.qty,0);}
+function renderAdminCart(){
+  const list=document.getElementById('adminCartList');
+  list.innerHTML=adminCart.map(c=>`<div class="cart-row" data-id="${c.id}"><div style="flex:1;min-width:0;"><div class="ci-name">${escapeHtml(c.name)}</div><div class="ci-price">${formatRupiah(c.price)} / porsi</div></div><div class="qty-ctrl"><button class="qminus">-</button><span>${c.qty}</span><button class="qplus">+</button></div><div class="ci-sub">${formatRupiah(c.price*c.qty)}</div></div>`).join('');
+  list.querySelectorAll('.cart-row').forEach(row=>{const id=row.dataset.id;row.querySelector('.qminus').addEventListener('click',()=>changeAdminQty(id,-1));row.querySelector('.qplus').addEventListener('click',()=>changeAdminQty(id,1));});
+  document.getElementById('adminCartTotal').textContent=formatRupiah(adminCartTotal());
+  document.getElementById('btnSaveAdminOrder').disabled=adminCart.length===0;
+}
+document.getElementById('btnAddAdminOrder').addEventListener('click',()=>{
+  adminCart=[]; adminSearchTerm=''; renderAdminCategoryTabs(); renderAdminMenuGrid(); renderAdminCart(); openOverlay('overlayAdminOrder');
+});
+document.getElementById('btnSaveAdminOrder').addEventListener('click',async()=>{
+  if(!adminCart.length)return; const btn=document.getElementById('btnSaveAdminOrder'); if(btn.disabled)return;
+  btn.disabled=true; const original=btn.textContent; btn.textContent='Menyimpan...'; markBusy(btn);
+  const now=new Date();
+  try{
+    const ref=db.collection('orders').doc();
+    await withTimeout(ref.set({items:adminCart.map(c=>({id:c.id,name:c.name,price:c.price,qty:c.qty})),total:adminCartTotal(),payment:null,cashReceived:null,dateStr:todayStr(),status:'pending',source:'admin',createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdAtClient:now.toISOString()}),12000);
+    showToast('Orderan admin tersimpan'); closeOverlay('overlayAdminOrder'); adminCart=[]; loadAdminOrders();
+  }catch(err){console.error(err);showToast('Gagal menyimpan orderan: '+(err&&err.message?err.message:'coba lagi'));}
+  btn.disabled=false; unmarkBusy(btn); btn.textContent=original;
+});
+async function loadAdminOrders(){
+  const wrap=document.getElementById('adminOrderList'); if(!wrap)return;
+  wrap.innerHTML='<div class="loading-row">Memuat...</div>';
+  try{
+    const snap=await db.collection('orders').limit(100).get();
+    const rows=snap.docs.map(d=>({id:d.id,...d.data()})).filter(o=>o.source==='admin').sort((a,b)=>new Date(b.createdAtClient||0)-new Date(a.createdAtClient||0));
+    document.getElementById('adminOrderEmpty').style.display=rows.length?'none':'block';
+    wrap.innerHTML=rows.map(o=>{
+      const pending=o.status==='pending'; const t=o.createdAtClient?new Date(o.createdAtClient):(o.createdAt&&o.createdAt.toDate?o.createdAt.toDate():new Date());
+      const items=(o.items||[]).map(i=>escapeHtml(i.name)+' x'+i.qty).join(', ');
+      return `<div class="admin-order-card" data-id="${o.id}"><div class="admin-order-head"><div class="admin-order-no">Order #${o.id.slice(-6).toUpperCase()}</div><span class="status-pill ${pending?'pending':'done'}">${pending?'MENUNGGU KASIR':'SELESAI'}</span></div><div class="admin-order-items">${items}</div><div class="admin-order-foot"><div><div class="admin-order-total">${formatRupiah(o.total)}</div><div class="admin-order-meta">${formatDateID(o.dateStr)} • ${formatTime(t)}</div></div></div>${pending?`<div class="admin-order-actions"><button class="btn btn-gold btn-block btn-complete-admin">Selesaikan Transaksi</button><button class="btn btn-outline del-admin-order">Hapus</button></div>`:`<div class="admin-order-actions"><button class="btn btn-outline btn-block del-admin-order">Hapus</button></div>`}</div>`;
+    }).join('');
+    wrap.querySelectorAll('.btn-complete-admin').forEach(btn=>btn.addEventListener('click',()=>openAdminOrderForPayment(btn.closest('.admin-order-card').dataset.id)));
+    wrap.querySelectorAll('.del-admin-order').forEach(btn=>btn.addEventListener('click',()=>{const id=btn.closest('.admin-order-card').dataset.id;confirmDelete('order',id,'Hapus orderan admin ini?');}));
+  }catch(err){console.error(err);wrap.innerHTML='<div class="empty-state">Gagal memuat orderan.</div>';}
+}
+async function openAdminOrderForPayment(id){
+  try{
+    const snap=await withTimeout(db.collection('orders').doc(id).get(),12000); if(!snap.exists){showToast('Orderan tidak ditemukan');return;}
+    const o=snap.data(); if(o.status!=='pending'){showToast('Orderan sudah diselesaikan');loadAdminOrders();return;}
+    pendingAdminOrderId=id; window.__pendingAdminDateStr=o.dateStr||todayStr(); cart=(o.items||[]).map(i=>({id:i.id,name:i.name,price:Number(i.price)||0,qty:Number(i.qty)||1})); paymentMethod=null;
+    document.getElementById('inpCashReceived').value=''; document.getElementById('payCash').classList.remove('active'); document.getElementById('payQris').classList.remove('active');
+    renderCartSheet(); openOverlay('overlayCart');
+  }catch(err){console.error(err);showToast('Gagal membuka orderan: '+(err&&err.message?err.message:'coba lagi'));}
+}
 
 /* ============ CART LOGIC ============ */
 function addToCart(id){
@@ -1085,9 +1241,10 @@ document.getElementById('btnCheckout').addEventListener('click', async ()=>{
     total: cartTotal(),
     payment: paymentMethod,
     cashReceived: paymentMethod==='cash' ? getCashReceived() : null,
-    dateStr: todayStr(),
+    dateStr: pendingAdminOrderId ? (window.__pendingAdminDateStr || todayStr()) : todayStr(),
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    createdAtClient: now.toISOString()
+    createdAtClient: now.toISOString(),
+    status: 'completed'
   };
 
   const statusEl = document.getElementById('savingStatusText');
@@ -1118,6 +1275,7 @@ document.getElementById('btnCheckout').addEventListener('click', async ()=>{
     }
     cart = [];
     paymentMethod = null;
+    if(pendingAdminOrderId){ pendingAdminOrderId=null; window.__pendingAdminDateStr=null; loadAdminOrders(); }
     document.getElementById('inpCashReceived').value='';
     setPayment(null);
     document.getElementById('payCash').classList.remove('active');
@@ -1156,7 +1314,8 @@ document.getElementById('btnCheckout').addEventListener('click', async ()=>{
     finishFailure(new Error('Waktu tunggu habis, cek koneksi internet'));
   }, 25000);
 
-  const docRef = db.collection('orders').doc();
+  const docRef = pendingAdminOrderId ? db.collection('orders').doc(pendingAdminOrderId) : db.collection('orders').doc();
+  if(pendingAdminOrderId) order.source='admin';
   pendingSyncCount++; updateSyncBadge();
 
   // Pantau status tulis lokal: dengan offline persistence aktif, penulisan
@@ -1455,7 +1614,7 @@ async function loadReport(){
       if(r.createdAt && r.createdAt.toDate) return r.createdAt.toDate().getTime();
       return 0;
     };
-    const orders = ordersSnap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>getTime(b)-getTime(a));
+    const orders = ordersSnap.docs.map(d=>({id:d.id, ...d.data()})).filter(o=>o.status!=='pending').sort((a,b)=>getTime(b)-getTime(a));
     const expenses = expSnap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>getTime(b)-getTime(a));
 
     const totalSales = orders.reduce((s,o)=>s+(o.total||0),0);
