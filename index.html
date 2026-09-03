@@ -652,8 +652,12 @@ label:first-child{margin-top:0;}
           <div class="s-value" id="statTxCount">0</div>
         </div>
         <div class="stat-card">
-          <div class="s-label">Pengeluaran</div>
+          <div class="s-label">Pengeluaran (Cash)</div>
           <div class="s-value rust" id="statExpense">Rp0</div>
+        </div>
+        <div class="stat-card wide cash-remaining-card">
+          <div class="s-label">Sisa Cash</div>
+          <div class="s-value" id="statCashRemaining">Rp0</div>
         </div>
         <div class="stat-card wide">
           <div class="s-label">Laba Bersih</div>
@@ -1621,6 +1625,8 @@ async function loadReport(){
     const cashTotal = orders.filter(o=>o.payment==='cash').reduce((s,o)=>s+(o.total||0),0);
     const qrisTotal = orders.filter(o=>o.payment==='qris').reduce((s,o)=>s+(o.total||0),0);
     const expTotal = expenses.reduce((s,e)=>s+(e.amount||0),0);
+    // Pengeluaran diambil dari uang cash, sehingga sisa cash = cash masuk - cash keluar.
+    const cashRemaining = cashTotal - expTotal;
     const net = totalSales - expTotal;
 
     document.getElementById('statTotalSales').textContent = formatRupiah(totalSales);
@@ -1628,6 +1634,9 @@ async function loadReport(){
     document.getElementById('statQris').textContent = formatRupiah(qrisTotal);
     document.getElementById('statTxCount').textContent = orders.length;
     document.getElementById('statExpense').textContent = formatRupiah(expTotal);
+    document.getElementById('statCashRemaining').textContent = formatRupiah(cashRemaining);
+    const cashRemainingEl = document.getElementById('statCashRemaining');
+    cashRemainingEl.style.color = cashRemaining < 0 ? 'var(--rust-600)' : 'var(--gold-500)';
     const netEl = document.getElementById('statNetProfit');
     netEl.textContent = formatRupiah(net);
     netEl.style.color = net<0 ? 'var(--rust-600)' : 'var(--gold-500)';
