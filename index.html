@@ -816,7 +816,7 @@ function updateSyncBadge(){
 /* ============ STATE ============ */
 let menuItems = [];      // {id,name,category,price}
 let cart = [];           // {id,name,price,qty}
-let activeCategory = 'Semua';
+let activeCategory = null; // otomatis diisi kategori pertama saat menu dimuat
 let searchTerm = '';
 let paymentMethod = null;
 let editingMenuId = null;
@@ -921,7 +921,8 @@ function renderCategoryDatalist(){
 }
 
 function renderCategoryTabs(){
-  const cats = ['Semua', ...new Set(menuItems.map(m=>m.category).filter(Boolean))];
+  const cats = [...new Set(menuItems.map(m=>m.category).filter(Boolean))];
+  if(!activeCategory || !cats.includes(activeCategory)) activeCategory = cats[0] || null;
   const wrap = document.getElementById('categoryTabs');
   wrap.innerHTML = cats.map(c=>
     `<button class="tab-chip ${c===activeCategory?'active':''}" data-cat="${escapeHtml(c)}">${escapeHtml(c)}</button>`
@@ -937,7 +938,7 @@ function renderCategoryTabs(){
 
 function renderMenuGrid(){
   let items = menuItems;
-  if(activeCategory !== 'Semua') items = items.filter(m=>m.category===activeCategory);
+  if(activeCategory) items = items.filter(m=>m.category===activeCategory);
   if(searchTerm) items = items.filter(m=>m.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const grid = document.getElementById('menuGrid');
@@ -1446,11 +1447,16 @@ async function loadReport(){
   document.getElementById('reportExpList').innerHTML = '';
   try{
     const [ordersSnap, expSnap] = await Promise.all([
-      db.collection('orders').where('dateStr','==',dateVal).orderBy('createdAt','desc').get(),
-      db.collection('expenses').where('dateStr','==',dateVal).orderBy('createdAt','desc').get()
+      db.collection('orders').where('dateStr','==',dateVal).get(),
+      db.collection('expenses').where('dateStr','==',dateVal).get()
     ]);
-    const orders = ordersSnap.docs.map(d=>({id:d.id, ...d.data()}));
-    const expenses = expSnap.docs.map(d=>({id:d.id, ...d.data()}));
+    const getTime = (r)=>{
+      if(r.createdAtClient) return new Date(r.createdAtClient).getTime();
+      if(r.createdAt && r.createdAt.toDate) return r.createdAt.toDate().getTime();
+      return 0;
+    };
+    const orders = ordersSnap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>getTime(b)-getTime(a));
+    const expenses = expSnap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>getTime(b)-getTime(a));
 
     const totalSales = orders.reduce((s,o)=>s+(o.total||0),0);
     const cashTotal = orders.filter(o=>o.payment==='cash').reduce((s,o)=>s+(o.total||0),0);
