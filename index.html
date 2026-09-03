@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>Kasir Kedai Warmindo</title>
+
+  <!-- Penghubung Manifest untuk Android/Chrome -->
+  <link href="manifest.json" rel="manifest"/>
+  <!-- Ikon Standar & Apple Touch Icon -->
+  <link href="ikon.png" rel="icon" type="image/png"/>
+  <link href="ikon.png" rel="apple-touch-icon"/>
+  <link href="ikon.png" rel="apple-touch-icon" sizes="152x152"/>
+  <link href="ikon.png" rel="apple-touch-icon" sizes="167x167"/>
+  <link href="ikon.png" rel="apple-touch-icon" sizes="180x180"/>
+
+  <style>
+    :root{
+      --bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#718096;--line:#e7ebf2;
+      --primary:#2563eb;--primary2:#1d4ed8;--danger:#dc2626;--success:#16a34a;
+      --shadow:0 10px 30px rgba(15,23,42,.07);--radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    button,input,select{font:inherit}
+    button{cursor:pointer;border:0}
+    .app{min-height:100vh;display:flex}
+    aside{width:245px;background:#0f172a;color:#fff;padding:22px 14px;position:fixed;inset:0 auto 0 0;z-index:20}
+    .brand{display:flex;align-items:center;gap:10px;padding:5px 8px 24px}
+    .brand img{width:42px;height:42px;border-radius:12px;object-fit:cover;background:#fff}
+    .brand b{font-size:16px}.brand small{display:block;color:#94a3b8;margin-top:2px}
+    nav button{width:100%;display:flex;align-items:center;gap:11px;padding:12px 13px;margin:5px 0;border-radius:12px;background:transparent;color:#cbd5e1;text-align:left}
+    nav button.active,nav button:hover{background:#1e293b;color:#fff}
+    main{margin-left:245px;width:calc(100% - 245px);padding:24px;max-width:1500px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px}
+    h1{font-size:25px;margin:0}.subtitle{color:var(--muted);font-size:13px;margin-top:4px}
+    .status{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px}
+    .dot{width:8px;height:8px;border-radius:50%;background:#16a34a}
+    .grid{display:grid;grid-template-columns:1.55fr .85fr;gap:18px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+    .card h2{font-size:17px;margin:0 0 15px}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+    .stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:var(--shadow)}
+    .stat span{display:block;color:var(--muted);font-size:12px}.stat b{display:block;font-size:20px;margin-top:6px}
+    .menu-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .menu-btn{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:13px;text-align:left;transition:.15s}
+    .menu-btn:hover{border-color:#93c5fd;transform:translateY(-1px)}
+    .menu-btn b{display:block;font-size:14px}.menu-btn span{color:var(--primary);font-weight:700;font-size:13px}
+    .order-list{min-height:180px;max-height:400px;overflow:auto}
+    .order-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+    .order-row:last-child{border-bottom:0}.order-row small{display:block;color:var(--muted)}
+    .qty{display:flex;align-items:center;gap:7px}.qty button{width:28px;height:28px;border-radius:8px;background:#eef2ff;color:#1e40af}
+    .remove{background:#fee2e2;color:#b91c1c;width:28px;height:28px;border-radius:8px}
+    .totalbox{border-top:1px solid var(--line);padding-top:14px;margin-top:10px}
+    .totalline{display:flex;justify-content:space-between;margin:8px 0}.grand{font-size:22px;font-weight:800}
+    .pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+    .pay{padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff}
+    .pay.selected{border:2px solid var(--primary);background:#eff6ff}
+    .primary{background:var(--primary);color:#fff;padding:12px 16px;border-radius:12px;font-weight:700;width:100%}
+    .primary:hover{background:var(--primary2)}.secondary{background:#eef2f7;color:#334155;padding:10px 14px;border-radius:10px}
+    .danger{background:#fee2e2;color:#b91c1c;padding:9px 12px;border-radius:10px}
+    .section{display:none}.section.active{display:block}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px}
+    input,select{width:100%;padding:11px 12px;border:1px solid #dbe1ea;border-radius:11px;background:#fff;color:var(--text);outline:none}
+    input:focus,select:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.12)}
+    .form-grid{display:grid;grid-template-columns:1.4fr .7fr .7fr auto;gap:10px;align-items:end}
+    label{font-size:12px;color:var(--muted);display:block;margin:0 0 6px}
+    table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:12px 9px;border-bottom:1px solid var(--line);font-size:13px}th{color:var(--muted);font-weight:600}
+    .pill{display:inline-block;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:700}.cash{background:#dcfce7;color:#166534}.qris{background:#dbeafe;color:#1e40af}
+    .report-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+    .report-card{padding:16px;border:1px solid var(--line);border-radius:14px;background:#fff}.report-card small{color:var(--muted)}.report-card b{display:block;font-size:22px;margin-top:7px}
+    .empty{text-align:center;color:var(--muted);padding:35px 10px}
+    .modal-back{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;align-items:center;justify-content:center;padding:15px}
+    .modal-back.show{display:flex}.modal{background:#fff;border-radius:18px;width:min(520px,100%);max-height:90vh;overflow:auto;padding:20px}
+    .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.modal-head h3{margin:0}
+    .toast{position:fixed;right:20px;bottom:20px;background:#0f172a;color:#fff;padding:12px 15px;border-radius:12px;box-shadow:var(--shadow);z-index:100;display:none}
+    .toast.show{display:block}
+    .date-input{max-width:180px}
+    @media(max-width:1000px){.grid{grid-template-columns:1fr}.menu-grid{grid-template-columns:repeat(4,1fr)}.stats{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:700px){
+      aside{width:70px;padding:15px 9px}.brand{justify-content:center;padding-bottom:15px}.brand div{display:none}.brand img{width:40px;height:40px}
+      nav button{justify-content:center;font-size:0;padding:12px}nav button span{font-size:20px}
+      main{margin-left:70px;width:calc(100% - 70px);padding:14px}.topbar{align-items:flex-start}.topbar h1{font-size:21px}
+      .menu-grid{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:repeat(2,1fr);gap:8px}.stat b{font-size:17px}
+      .form-grid{grid-template-columns:1fr 1fr}.form-grid button{grid-column:1/-1}.report-cards{grid-template-columns:1fr}
+      th:nth-child(4),td:nth-child(4){display:none}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <img src="ikon.png" alt="Logo" onerror="this.style.visibility='hidden'">
+      <div><b>Kedai Warmindo</b><small>Kasir</small></div>
+    </div>
+    <nav>
+      <button class="active" data-page="penjualan"><span>🛒</span><em>Penjualan</em></button>
+      <button data-page="menu"><span>🍜</span><em>Daftar Menu</em></button>
+      <button data-page="pengeluaran"><span>💸</span><em>Pengeluaran</em></button>
+      <button data-page="laporan"><span>📊</span><em>Laporan Harian</em></button>
+    </nav>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div><h1 id="pageTitle">Penjualan</h1><div class="subtitle" id="todayText"></div></div>
+      <div class="status"><i class="dot" id="dbDot"></i><span id="dbStatus">Menghubungkan Firebase...</span></div>
+    </div>
+
+    <section id="penjualan" class="section active">
+      <div class="stats">
+        <div class="stat"><span>Omzet Hari Ini</span><b id="sOmzet">Rp0</b></div>
+        <div class="stat"><span>Transaksi</span><b id="sTransaksi">0</b></div>
+        <div class="stat"><span>Cash</span><b id="sCash">Rp0</b></div>
+        <div class="stat"><span>QRIS</span><b id="sQris">Rp0</b></div>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h2>Pilih Menu</h2>
+          <div id="menuButtons" class="menu-grid"><div class="empty">Memuat menu...</div></div>
+        </div>
+        <div class="card">
+          <h2>Orderan</h2>
+          <div id="cart" class="order-list"><div class="empty">Belum ada item. Klik menu untuk menambahkan.</div></div>
+          <div class="totalbox">
+            <div class="totalline"><span>Total item</span><b id="cartQty">0</b></div>
+            <div class="totalline grand"><span>Total</span><b id="cartTotal">Rp0</b></div>
+            <div class="pay-grid">
+              <button class="pay selected" data-pay="cash">💵 Cash</button>
+              <button class="pay" data-pay="qris">▣ QRIS</button>
+            </div>
+            <button id="saveSale" class="primary">Simpan Penjualan</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="menu" class="section">
+      <div class="card">
+        <h2>Kelola Daftar Menu</h2>
+        <div class="form-grid">
+          <div><label>Nama menu</label><input id="menuName" placeholder="Contoh: Indomie Goreng"></div>
+          <div><label>Harga</label><input id="menuPrice" type="number" min="0" placeholder="15000"></div>
+          <div><label>Kategori</label><input id="menuCategory" placeholder="Makanan"></div>
+          <button class="primary" id="addMenu">Tambah Menu</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><h2>Menu Tersimpan</h2><span class="subtitle" id="menuCount"></span></div>
+        <div style="overflow:auto"><table><thead><tr><th>Menu</th><th>Kategori</th><th>Harga</th><th>Aksi</th></tr></thead><tbody id="menuTable"></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="pengeluaran" class="section">
+      <div class="card">
+        <h2>Catat Pengeluaran</h2>
+        <div class="form-grid">
+          <div><label>Keterangan</label><input id="expenseName" placeholder="Contoh: Beli es kristal"></div>
+          <div><label>Nominal</label><input id="expenseAmount" type="number" min="0" placeholder="10000"></div>
+          <div><label>Kategori</label><input id="expenseCategory" placeholder="Bahan"></div>
+          <button class="primary" id="addExpense">Simpan Pengeluaran</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <h2>Pengeluaran Hari Ini</h2>
+        <div style="overflow:auto"><table><thead><tr><th>Waktu</th><th>Keterangan</th><th>Kategori</th><th>Nominal</th><th>Aksi</th></tr></thead><tbody id="expenseTable"></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="laporan" class="section">
+      <div class="toolbar">
+        <div><label>Pilih tanggal</label><input id="reportDate" class="date-input" type="date"></div>
+        <button id="refreshReport" class="secondary" style="align-self:end">↻ Refresh</button>
+      </div>
+      <div class="report-cards">
+        <div class="report-card"><small>Omzet</small><b id="rOmzet">Rp0</b></div>
+        <div class="report-card"><small>Pengeluaran</small><b id="rExpense">Rp0</b></div>
+        <div class="report-card"><small>Laba Bersih Sederhana</small><b id="rNet">Rp0</b></div>
+      </div>
+      <div class="card">
+        <h2>Rincian Penjualan</h2>
+        <div style="overflow:auto"><table><thead><tr><th>Waktu</th><th>Item</th><th>Pembayaran</th><th>Total</th></tr></thead><tbody id="salesTable"></tbody></table></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="modalBack" class="modal-back">
+  <div class="modal">
+    <div class="modal-head"><h3 id="modalTitle">Edit</h3><button class="secondary" id="closeModal">✕</button></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
+  onSnapshot, query, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBMIOjbSOJl7QsqRIZ7ywOdplBMNQi1GCU",
+  authDomain: "kedaiwarmindo-9f399.firebaseapp.com",
+  projectId: "kedaiwarmindo-9f399",
+  storageBucket: "kedaiwarmindo-9f399.firebasestorage.app",
+  messagingSenderId: "437768743863",
+  appId: "1:437768743863:web:1af406325e70f7f5889632",
+  measurementId: "G-JRVJMF1PXQ"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const state = {
+  menus: [], sales: [], expenses: [], cart: [],
+  payment: "cash", reportDate: localDate()
+};
+
+const $ = id => document.getElementById(id);
+const money = n => new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(n)||0);
+const localDate = d => {
+  const x = d ? new Date(d) : new Date();
+  const y=x.getFullYear(), m=String(x.getMonth()+1).padStart(2,"0"), day=String(x.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+};
+const timeText = v => {
+  const d = v?.toDate ? v.toDate() : new Date(v);
+  return isNaN(d) ? "-" : d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
+};
+const dateText = v => {
+  const d = v?.toDate ? v.toDate() : new Date(v);
+  return isNaN(d) ? "-" : localDate(d);
+};
+function toast(msg){
+  $("toast").textContent=msg;$("toast").classList.add("show");
+  setTimeout(()=>$("toast").classList.remove("show"),2200);
+}
+function setDbStatus(ok,msg){
+  $("dbStatus").textContent=msg;
+  $("dbDot").style.background=ok?"#16a34a":"#dc2626";
+}
+$("todayText").textContent = new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+$("reportDate").value = state.reportDate;
+
+document.querySelectorAll("nav button").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".section").forEach(x=>x.classList.remove("active"));
+    $(btn.dataset.page).classList.add("active");
+    $("pageTitle").textContent=btn.querySelector("em").textContent;
+    if(btn.dataset.page==="laporan") renderReport();
+  });
+});
+
+document.querySelectorAll(".pay").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    state.payment=btn.dataset.pay;
+    document.querySelectorAll(".pay").forEach(x=>x.classList.remove("selected"));
+    btn.classList.add("selected");
+  });
+});
+
+function renderMenus(){
+  const wrap=$("menuButtons");
+  if(!state.menus.length){wrap.innerHTML='<div class="empty">Belum ada menu. Tambahkan menu di Daftar Menu.</div>';return;}
+  wrap.innerHTML=state.menus.map(m=>`
+    <button class="menu-btn" data-id="${m.id}">
+      <b>${esc(m.name)}</b><span>${money(m.price)}</span>
+      <small>${esc(m.category||"Umum")}</small>
+    </button>`).join("");
+  wrap.querySelectorAll(".menu-btn").forEach(b=>b.onclick=()=>addToCart(b.dataset.id));
+}
+function renderMenuTable(){
+  $("menuCount").textContent=`${state.menus.length} menu`;
+  $("menuTable").innerHTML=state.menus.length?state.menus.map(m=>`
+    <tr><td><b>${esc(m.name)}</b></td><td>${esc(m.category||"Umum")}</td><td>${money(m.price)}</td>
+    <td><button class="secondary" data-edit="${m.id}">Edit</button> <button class="danger" data-del="${m.id}">Hapus</button></td></tr>`).join("") :
+    '<tr><td colspan="4" class="empty">Belum ada menu.</td></tr>';
+  $("menuTable").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>editMenu(b.dataset.edit));
+  $("menuTable").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>removeMenu(b.dataset.del));
+}
+function addToCart(id){
+  const m=state.menus.find(x=>x.id===id); if(!m)return;
+  const found=state.cart.find(x=>x.id===id);
+  if(found) found.qty++; else state.cart.push({id:m.id,name:m.name,price:Number(m.price),qty:1});
+  renderCart();
+}
+function renderCart(){
+  const wrap=$("cart");
+  if(!state.cart.length){wrap.innerHTML='<div class="empty">Belum ada item. Klik menu untuk menambahkan.</div>';}
+  else wrap.innerHTML=state.cart.map((x,i)=>`
+    <div class="order-row">
+      <div><b>${esc(x.name)}</b><small>${money(x.price)} × ${x.qty}</small></div>
+      <div class="qty"><button data-minus="${i}">−</button><b>${x.qty}</b><button data-plus="${i}">+</button></div>
+      <button class="remove" data-remove="${i}">✕</button>
+    </div>`).join("");
+  wrap.querySelectorAll("[data-minus]").forEach(b=>b.onclick=()=>changeQty(+b.dataset.minus,-1));
+  wrap.querySelectorAll("[data-plus]").forEach(b=>b.onclick=()=>changeQty(+b.dataset.plus,1));
+  wrap.querySelectorAll("[data-remove]").forEach(b=>b.onclick=()=>{state.cart.splice(+b.dataset.remove,1);renderCart();});
+  const qty=state.cart.reduce((a,x)=>a+x.qty,0), total=state.cart.reduce((a,x)=>a+x.qty*x.price,0);
+  $("cartQty").textContent=qty;$("cartTotal").textContent=money(total);
+}
+function changeQty(i,d){state.cart[i].qty+=d;if(state.cart[i].qty<=0)state.cart.splice(i,1);renderCart();}
+$("saveSale").onclick=async()=>{
+  if(!state.cart.length)return toast("Order masih kosong.");
+  const total=state.cart.reduce((a,x)=>a+x.qty*x.price,0);
+  try{
+    $("saveSale").disabled=true;
+    await addDoc(collection(db,"sales"),{
+      items:state.cart.map(x=>({menuId:x.id,name:x.name,price:x.price,qty:x.qty,subtotal:x.price*x.qty})),
+      total,payment:state.payment,date:localDate(),createdAt:serverTimestamp()
+    });
+    state.cart=[];renderCart();toast("Penjualan berhasil disimpan.");
+  }catch(e){console.error(e);toast("Gagal menyimpan penjualan.");}
+  finally{$("saveSale").disabled=false;}
+};
+
+$("addMenu").onclick=async()=>{
+  const name=$("menuName").value.trim(), price=Number($("menuPrice").value), category=$("menuCategory").value.trim()||"Umum";
+  if(!name||!price||price<0)return toast("Nama dan harga menu wajib diisi.");
+  try{
+    await addDoc(collection(db,"menus"),{name,price,category,active:true,createdAt:serverTimestamp()});
+    $("menuName").value="";$("menuPrice").value="";$("menuCategory").value="";toast("Menu ditambahkan.");
+  }catch(e){console.error(e);toast("Gagal menambah menu.");}
+};
+async function removeMenu(id){
+  if(!confirm("Hapus menu ini? Data penjualan lama tetap aman."))return;
+  try{await deleteDoc(doc(db,"menus",id));toast("Menu dihapus.");}catch(e){console.error(e);toast("Gagal menghapus menu.");}
+}
+function editMenu(id){
+  const m=state.menus.find(x=>x.id===id);if(!m)return;
+  $("modalTitle").textContent="Edit Menu";
+  $("modalBody").innerHTML=`
+    <label>Nama menu</label><input id="editName" value="${attr(m.name)}">
+    <label style="margin-top:10px">Harga</label><input id="editPrice" type="number" value="${m.price}">
+    <label style="margin-top:10px">Kategori</label><input id="editCategory" value="${attr(m.category||"Umum")}">
+    <button class="primary" id="saveEdit" style="margin-top:15px">Simpan Perubahan</button>`;
+  $("modalBack").classList.add("show");
+  $("saveEdit").onclick=async()=>{
+    const name=$("editName").value.trim(),price=Number($("editPrice").value),category=$("editCategory").value.trim()||"Umum";
+    if(!name||price<0)return toast("Data belum lengkap.");
+    try{await updateDoc(doc(db,"menus",id),{name,price,category});$("modalBack").classList.remove("show");toast("Menu diperbarui.");}
+    catch(e){console.error(e);toast("Gagal memperbarui menu.");}
+  };
+}
+
+$("addExpense").onclick=async()=>{
+  const name=$("expenseName").value.trim(),amount=Number($("expenseAmount").value),category=$("expenseCategory").value.trim()||"Lainnya";
+  if(!name||!amount||amount<0)return toast("Keterangan dan nominal wajib diisi.");
+  try{
+    await addDoc(collection(db,"expenses"),{name,amount,category,date:localDate(),createdAt:serverTimestamp()});
+    $("expenseName").value="";$("expenseAmount").value="";$("expenseCategory").value="";toast("Pengeluaran disimpan.");
+  }catch(e){console.error(e);toast("Gagal menyimpan pengeluaran.");}
+};
+function renderExpenses(){
+  const arr=state.expenses.filter(x=>dateText(x.createdAt||x.date)===localDate());
+  $("expenseTable").innerHTML=arr.length?arr.map(x=>`
+    <tr><td>${timeText(x.createdAt)}</td><td>${esc(x.name)}</td><td>${esc(x.category||"Lainnya")}</td><td>${money(x.amount)}</td>
+    <td><button class="danger" data-exp="${x.id}">Hapus</button></td></tr>`).join(""):'<tr><td colspan="5" class="empty">Belum ada pengeluaran hari ini.</td></tr>';
+  $("expenseTable").querySelectorAll("[data-exp]").forEach(b=>b.onclick=()=>removeExpense(b.dataset.exp));
+}
+async function removeExpense(id){
+  if(!confirm("Hapus pengeluaran ini?"))return;
+  try{await deleteDoc(doc(db,"expenses",id));toast("Pengeluaran dihapus.");}catch(e){console.error(e);toast("Gagal menghapus pengeluaran.");}
+}
+
+function renderDashboard(){
+  const today=localDate(), arr=state.sales.filter(x=>x.date===today);
+  const omzet=arr.reduce((a,x)=>a+Number(x.total||0),0),cash=arr.filter(x=>x.payment==="cash").reduce((a,x)=>a+Number(x.total||0),0),qris=arr.filter(x=>x.payment==="qris").reduce((a,x)=>a+Number(x.total||0),0);
+  $("sOmzet").textContent=money(omzet);$("sTransaksi").textContent=arr.length;$("sCash").textContent=money(cash);$("sQris").textContent=money(qris);
+}
+function renderReport(){
+  const d=$("reportDate").value||localDate();
+  const sales=state.sales.filter(x=>x.date===d), exps=state.expenses.filter(x=>x.date===d);
+  const omzet=sales.reduce((a,x)=>a+Number(x.total||0),0), expense=exps.reduce((a,x)=>a+Number(x.amount||0),0);
+  $("rOmzet").textContent=money(omzet);$("rExpense").textContent=money(expense);$("rNet").textContent=money(omzet-expense);
+  $("salesTable").innerHTML=sales.length?sales.map(x=>`
+    <tr><td>${timeText(x.createdAt)}</td><td>${x.items.map(i=>`${esc(i.name)} × ${i.qty}`).join(", ")}</td>
+    <td><span class="pill ${x.payment==="cash"?"cash":"qris"}">${x.payment.toUpperCase()}</span></td><td>${money(x.total)}</td></tr>`).join("") :
+    '<tr><td colspan="4" class="empty">Belum ada penjualan pada tanggal ini.</td></tr>';
+}
+$("reportDate").onchange=renderReport;$("refreshReport").onclick=renderReport;
+$("closeModal").onclick=()=>$("modalBack").classList.remove("show");
+$("modalBack").onclick=e=>{if(e.target===$("modalBack"))$("modalBack").classList.remove("show")};
+
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
+function attr(v){return esc(v);}
+
+function startListeners(){
+  onSnapshot(query(collection(db,"menus"),orderBy("createdAt","desc")),snap=>{
+    state.menus=snap.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.active!==false);
+    renderMenus();renderMenuTable();setDbStatus(true,"Firebase terhubung");
+  },err=>{console.error(err);setDbStatus(false,"Firebase error");toast("Periksa Firestore Rules / koneksi Firebase.");});
+  onSnapshot(query(collection(db,"sales"),orderBy("createdAt","desc")),snap=>{
+    state.sales=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderDashboard();renderReport();
+  },err=>console.error(err));
+  onSnapshot(query(collection(db,"expenses"),orderBy("createdAt","desc")),snap=>{
+    state.expenses=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderExpenses();renderReport();
+  },err=>console.error(err));
+}
+renderCart();startListeners();
+</script>
+</body>
+</html>
