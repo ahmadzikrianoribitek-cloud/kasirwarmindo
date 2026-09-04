@@ -704,16 +704,15 @@ label:first-child{margin-top:0;}
     max-width:600px;
   }
 
-  /* Grid laporan & menu memakai kolom lebih banyak agar mengisi lebar layar */
-  .stat-grid{ grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); }
+  /* Grid laporan & menu memakai kolom lebih banyak agar mengisi lebar layar.
+     stat-grid dibuat kolom tetap (bukan auto-fit) supaya baris Tunai/QRIS/
+     Jumlah Transaksi/Pengeluaran selalu penuh sampai ujung kanan. */
+  .stat-grid{ grid-template-columns:repeat(4,1fr); }
   .menu-grid{ grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); }
-
-  .report-date-row{ max-width:420px; }
 }
 
 @media (min-width:1180px){
   body{ padding-left:112px; }
-  .stat-grid{ grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); }
   .menu-grid{ grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); }
 }
 </style>
