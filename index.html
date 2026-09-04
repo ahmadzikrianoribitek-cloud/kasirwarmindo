@@ -647,6 +647,67 @@ label:first-child{margin-top:0;}
 .loading-row{text-align:center;padding:20px;color:var(--ink-400);font-size:12.5px;}
 
 ::-webkit-scrollbar{width:0;height:0;}
+
+/* ===== LAYAR LEBAR / DESKTOP =====
+   Mobile di atas tidak disentuh sama sekali (tetap tampil sebagai kartu HP).
+   Mulai dari 860px, menu bawah dipindah jadi sidebar kiri (menyesuaikan tinggi
+   layar), dan area konten melebar mengikuti sisa lebar layar. */
+@media (min-width:860px){
+  body{ padding-left:112px; }
+
+  .app{
+    max-width:760px;
+    box-shadow:none;
+    border-left:1.5px solid var(--line);
+    border-right:1.5px solid var(--line);
+  }
+
+  .app-header{ padding-left:28px; padding-right:28px; }
+  main{ padding-left:24px; padding-right:24px; padding-bottom:56px; }
+  main.has-cart-bar{ padding-bottom:110px; }
+
+  /* Sidebar menu kiri, mengikuti tinggi layar */
+  .dock{
+    left:0; right:auto; bottom:0; top:0;
+    transform:none;
+    width:112px; max-width:112px;
+    flex-direction:column;
+    justify-content:flex-start;
+    align-items:stretch;
+    gap:6px;
+    padding:26px 0 16px;
+    border-top:none;
+    border-right:3px solid var(--gold-500);
+  }
+  .dock button{ flex:none; padding:15px 6px 14px; font-size:11px; }
+  .dock button svg{ width:24px; height:24px; }
+  .dock button.active::before{
+    top:50%; left:0; transform:translateY(-50%);
+    width:3px; height:30px;
+    border-radius:0 3px 3px 0;
+  }
+  .dock .badge{ top:8px; right:24%; }
+
+  /* Bar keranjang mengikuti posisi tengah area konten (bukan tengah layar penuh) */
+  .cart-bar{
+    left:calc(50% + 56px);
+    bottom:24px;
+    width:calc(100% - 152px);
+  }
+
+  /* Grid laporan & menu memakai kolom lebih banyak agar tidak lowong */
+  .stat-grid{ grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); }
+  .menu-grid{ grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); }
+
+  .report-date-row{ max-width:420px; }
+}
+
+@media (min-width:1180px){
+  body{ padding-left:112px; }
+  .app{ max-width:920px; }
+  .stat-grid{ grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); }
+  .menu-grid{ grid-template-columns:repeat(auto-fill,minmax(175px,1fr)); }
+}
 </style>
 </head>
 <body>
