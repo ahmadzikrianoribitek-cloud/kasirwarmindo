@@ -460,6 +460,10 @@ label:first-child{margin-top:0;}
 .category-group-title:first-child{margin-top:0;}
 
 /* ===== LAPORAN ===== */
+#reportCaptureArea{background:var(--cream-50);}
+.report-capture-title{display:none;font-family:'Bebas Neue';font-size:22px;letter-spacing:0.5px;color:var(--teal-950);margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--gold-500);}
+#reportCaptureArea.capturing{padding:16px;}
+#reportCaptureArea.capturing .report-capture-title{display:block;}
 .report-date-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:14px;}
 .report-date-row > div{flex:1;}
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px;}
@@ -656,57 +660,61 @@ label:first-child{margin-top:0;}
   body{ padding-left:112px; }
 
   .app{
-    max-width:760px;
+    max-width:none;
     box-shadow:none;
-    border-left:1.5px solid var(--line);
-    border-right:1.5px solid var(--line);
   }
 
-  .app-header{ padding-left:28px; padding-right:28px; }
-  main{ padding-left:24px; padding-right:24px; padding-bottom:56px; }
+  .app-header{ padding-left:32px; padding-right:32px; }
+  main{ padding-left:32px; padding-right:32px; padding-bottom:56px; }
   main.has-cart-bar{ padding-bottom:110px; }
 
-  /* Sidebar menu kiri, mengikuti tinggi layar */
+  /* Sidebar menu kiri, tombol memenuhi seluruh tinggi layar */
   .dock{
     left:0; right:auto; bottom:0; top:0;
     transform:none;
     width:112px; max-width:112px;
     flex-direction:column;
-    justify-content:flex-start;
     align-items:stretch;
-    gap:6px;
-    padding:26px 0 16px;
+    gap:0;
+    padding:0;
     border-top:none;
     border-right:3px solid var(--gold-500);
   }
-  .dock button{ flex:none; padding:15px 6px 14px; font-size:11px; }
+  .dock button{
+    flex:1;
+    justify-content:center;
+    padding:6px;
+    font-size:11px;
+    border-bottom:1px solid rgba(219,164,60,0.15);
+  }
+  .dock button:last-child{ border-bottom:none; }
   .dock button svg{ width:24px; height:24px; }
   .dock button.active::before{
     top:50%; left:0; transform:translateY(-50%);
-    width:3px; height:30px;
+    width:3px; height:34px;
     border-radius:0 3px 3px 0;
   }
-  .dock .badge{ top:8px; right:24%; }
+  .dock .badge{ top:14px; right:24%; }
 
   /* Bar keranjang mengikuti posisi tengah area konten (bukan tengah layar penuh) */
   .cart-bar{
     left:calc(50% + 56px);
     bottom:24px;
     width:calc(100% - 152px);
+    max-width:600px;
   }
 
-  /* Grid laporan & menu memakai kolom lebih banyak agar tidak lowong */
+  /* Grid laporan & menu memakai kolom lebih banyak agar mengisi lebar layar */
   .stat-grid{ grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); }
-  .menu-grid{ grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); }
+  .menu-grid{ grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); }
 
   .report-date-row{ max-width:420px; }
 }
 
 @media (min-width:1180px){
   body{ padding-left:112px; }
-  .app{ max-width:920px; }
   .stat-grid{ grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); }
-  .menu-grid{ grid-template-columns:repeat(auto-fill,minmax(175px,1fr)); }
+  .menu-grid{ grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); }
 }
 </style>
 </head>
@@ -783,44 +791,53 @@ label:first-child{margin-top:0;}
         <button class="btn btn-outline" id="btnToday" style="height:38px;margin-bottom:1px;">Hari Ini</button>
       </div>
 
-      <div class="stat-grid">
-        <div class="stat-card wide">
-          <div class="s-label">Total Penjualan</div>
-          <div class="s-value" id="statTotalSales">Rp0</div>
+      <button class="btn btn-outline btn-block" id="btnDownloadReport" style="display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:16px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M5 21h14"/></svg>
+        Unduh Laporan (Gambar)
+      </button>
+
+      <div id="reportCaptureArea">
+        <div class="report-capture-title" id="reportCaptureTitle">Laporan Harian</div>
+
+        <div class="stat-grid">
+          <div class="stat-card wide">
+            <div class="s-label">Total Penjualan</div>
+            <div class="s-value" id="statTotalSales">Rp0</div>
+          </div>
+          <div class="stat-card">
+            <div class="s-label">Tunai (Cash)</div>
+            <div class="s-value" id="statCash">Rp0</div>
+          </div>
+          <div class="stat-card">
+            <div class="s-label">QRIS</div>
+            <div class="s-value" id="statQris">Rp0</div>
+          </div>
+          <div class="stat-card">
+            <div class="s-label">Jumlah Transaksi</div>
+            <div class="s-value" id="statTxCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="s-label">Pengeluaran (Cash)</div>
+            <div class="s-value rust" id="statExpense">Rp0</div>
+          </div>
+          <div class="stat-card wide cash-remaining-card">
+            <div class="s-label">Sisa Cash</div>
+            <div class="s-value" id="statCashRemaining">Rp0</div>
+          </div>
+          <div class="stat-card wide">
+            <div class="s-label">Laba Bersih</div>
+            <div class="s-value" id="statNetProfit">Rp0</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="s-label">Tunai (Cash)</div>
-          <div class="s-value" id="statCash">Rp0</div>
-        </div>
-        <div class="stat-card">
-          <div class="s-label">QRIS</div>
-          <div class="s-value" id="statQris">Rp0</div>
-        </div>
-        <div class="stat-card">
-          <div class="s-label">Jumlah Transaksi</div>
-          <div class="s-value" id="statTxCount">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="s-label">Pengeluaran (Cash)</div>
-          <div class="s-value rust" id="statExpense">Rp0</div>
-        </div>
-        <div class="stat-card wide cash-remaining-card">
-          <div class="s-label">Sisa Cash</div>
-          <div class="s-value" id="statCashRemaining">Rp0</div>
-        </div>
-        <div class="stat-card wide">
-          <div class="s-label">Laba Bersih</div>
-          <div class="s-value" id="statNetProfit">Rp0</div>
-        </div>
+
+        <div class="subsection-title">Riwayat Transaksi</div>
+        <div id="reportTxList"></div>
+        <div class="empty-state" id="reportTxEmpty" style="display:none;">Belum ada transaksi di tanggal ini.</div>
+
+        <div class="subsection-title">Rincian Pengeluaran</div>
+        <div id="reportExpList"></div>
+        <div class="empty-state" id="reportExpEmpty" style="display:none;">Tidak ada pengeluaran di tanggal ini.</div>
       </div>
-
-      <div class="subsection-title">Riwayat Transaksi</div>
-      <div id="reportTxList"></div>
-      <div class="empty-state" id="reportTxEmpty" style="display:none;">Belum ada transaksi di tanggal ini.</div>
-
-      <div class="subsection-title">Rincian Pengeluaran</div>
-      <div id="reportExpList"></div>
-      <div class="empty-state" id="reportExpEmpty" style="display:none;">Tidak ada pengeluaran di tanggal ini.</div>
     </section>
 
     <!-- ================= SCREEN: PENGELUARAN ================= -->
@@ -1876,6 +1893,8 @@ document.getElementById('btnToday').addEventListener('click', ()=>{
 
 async function loadReport(){
   const dateVal = document.getElementById('reportDate').value || todayStr();
+  const titleDateEl = document.getElementById('reportDateField');
+  document.getElementById('reportCaptureTitle').textContent = 'Laporan Harian \u2022 ' + (titleDateEl ? titleDateEl.textContent : dateVal);
   document.getElementById('reportTxList').innerHTML = '<div class="loading-row">Memuat...</div>';
   document.getElementById('reportExpList').innerHTML = '';
   try{
@@ -1954,6 +1973,28 @@ async function loadReport(){
     document.getElementById('reportTxList').innerHTML = '<div class="empty-state">Gagal memuat laporan. Pastikan index Firestore sudah dibuat (lihat console).</div>';
   }
 }
+
+document.getElementById('btnDownloadReport').addEventListener('click', async ()=>{
+  const btn = document.getElementById('btnDownloadReport');
+  const originalHtml = btn.innerHTML;
+  btn.textContent = 'Memproses...'; btn.disabled = true;
+  const area = document.getElementById('reportCaptureArea');
+  area.classList.add('capturing');
+  try{
+    const canvas = await html2canvas(area, {backgroundColor:'#fbf5e4', scale:2});
+    const link = document.createElement('a');
+    const dateVal = document.getElementById('reportDate').value || todayStr();
+    link.download = 'laporan-'+dateVal+'.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('Laporan tersimpan sebagai gambar');
+  }catch(err){
+    console.error(err);
+    showToast('Gagal menyimpan laporan');
+  }
+  area.classList.remove('capturing');
+  btn.innerHTML = originalHtml; btn.disabled = false;
+});
 
 /* ============ UTIL ============ */
 function escapeHtml(str){
