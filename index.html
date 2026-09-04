@@ -48,25 +48,36 @@
   --line:#d8c79f;
   --radius:10px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
+html{
+  height:100%;
+  overflow:hidden;
+}
 body{
   font-family:'Poppins',sans-serif;
-  background:var(--cream-50);
+  background:var(--teal-950);
   color:var(--ink-900);
-  min-height:100vh;
+  height:100%;
+  overflow:hidden;
+  position:fixed;
+  inset:0;
+  width:100%;
   -webkit-tap-highlight-color:transparent;
+  overscroll-behavior:none;
 }
 .app{
   max-width:480px;
   margin:0 auto;
-  min-height:100vh;
+  height:100%;
   background:var(--cream-50);
   position:relative;
   display:flex;
   flex-direction:column;
   box-shadow:0 0 40px rgba(12,58,53,0.15);
+  overflow:hidden;
 }
 h1,h2,h3,.display{font-family:'Bebas Neue',cursive;letter-spacing:0.5px;}
 button{font-family:inherit;cursor:pointer;}
@@ -77,12 +88,12 @@ input,select,textarea{font-family:inherit;}
   background:var(--teal-950);
   background-image:radial-gradient(circle at 85% -20%, rgba(219,164,60,0.25), transparent 55%);
   color:var(--cream-50);
-  padding:14px 16px;
+  padding:calc(14px + var(--safe-top)) 16px 14px;
   display:flex;
   align-items:center;
   gap:12px;
-  position:sticky;
-  top:0;
+  position:relative;
+  flex-shrink:0;
   z-index:30;
   border-bottom:3px solid var(--gold-500);
 }
@@ -118,8 +129,12 @@ input,select,textarea{font-family:inherit;}
 /* ===== MAIN ===== */
 main{
   flex:1;
+  min-height:0;
   padding:14px 14px calc(96px + var(--safe-bottom));
+  overflow-y:auto;
   overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
 }
 main.has-cart-bar{
   padding-bottom:calc(160px + var(--safe-bottom));
@@ -459,6 +474,75 @@ label:first-child{margin-top:0;}
 .stat-card.wide .s-value{color:var(--cream-50);font-size:26px;}
 .stat-card .s-value.rust{color:var(--rust-600);}
 
+/* ===== CUSTOM DATE FIELD (ganti input type=date bawaan HP) ===== */
+.date-field{
+  width:100%;
+  height:42px;
+  border:1.5px solid var(--line);
+  background:var(--white);
+  border-radius:8px;
+  padding:0 34px 0 12px;
+  font-size:14px;
+  font-family:inherit;
+  color:var(--ink-900);
+  text-align:left;
+  position:relative;
+  display:flex;
+  align-items:center;
+  -webkit-appearance:none;
+  appearance:none;
+}
+.date-field.placeholder{color:var(--ink-400);}
+.date-field-wrap{position:relative;}
+.date-field-wrap svg{
+  position:absolute;right:11px;top:50%;transform:translateY(-50%);
+  width:17px;height:17px;stroke:var(--ink-600);fill:none;stroke-width:1.8;pointer-events:none;
+}
+/* varian outline untuk selaras dengan tombol "Hari Ini" di Laporan */
+.date-field.date-field-outline{
+  height:38px;
+  background:transparent;
+  border:1.5px solid var(--teal-800);
+  color:var(--teal-800);
+  font-weight:600;
+}
+.date-field.date-field-outline.placeholder{color:var(--teal-700);opacity:0.75;}
+.date-field-wrap.outline svg{stroke:var(--teal-800);}
+
+/* ===== POPUP KALENDER (custom, tema seragam di semua HP) ===== */
+.dp-sheet{max-width:340px;}
+.dp-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.dp-nav button{
+  background:var(--cream-100);border:none;border-radius:8px;
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  color:var(--teal-950);
+}
+.dp-nav button:active{background:var(--gold-100);}
+.dp-nav button svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;}
+.dp-month-label{font-family:'Bebas Neue',cursive;font-size:19px;color:var(--teal-950);letter-spacing:0.5px;}
+.dp-weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;}
+.dp-weekdays span{
+  text-align:center;font-size:10.5px;font-weight:700;color:var(--ink-400);
+  text-transform:uppercase;padding:4px 0;
+}
+.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.dp-day{
+  aspect-ratio:1/1;
+  border:none;background:transparent;border-radius:8px;
+  font-size:13.5px;font-weight:600;color:var(--ink-900);
+  display:flex;align-items:center;justify-content:center;
+}
+.dp-day.muted{color:var(--ink-400);opacity:0.55;}
+.dp-day.today{box-shadow:inset 0 0 0 1.5px var(--teal-800);color:var(--teal-800);}
+.dp-day.selected{background:var(--teal-950);color:var(--gold-500);font-weight:800;}
+.dp-day.selected.today{box-shadow:none;}
+.dp-day:active{background:var(--gold-100);}
+.dp-footer{display:flex;justify-content:center;margin-top:10px;}
+.dp-today-link{
+  background:none;border:none;color:var(--rust-600);
+  font-size:12.5px;font-weight:700;padding:6px 10px;
+}
+
 .tx-row{
   display:flex;align-items:center;gap:10px;
   background:var(--white);border:1.5px solid var(--line);
@@ -629,7 +713,11 @@ label:first-child{margin-top:0;}
       <div class="report-date-row">
         <div>
           <label>Pilih Tanggal</label>
-          <input type="date" id="reportDate"/>
+          <div class="date-field-wrap outline">
+            <button type="button" class="date-field date-field-outline" id="reportDateField" onclick="openDatePicker('reportDate')"></button>
+            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+            <input type="hidden" id="reportDate"/>
+          </div>
         </div>
         <button class="btn btn-outline" id="btnToday" style="height:38px;margin-bottom:1px;">Hari Ini</button>
       </div>
@@ -681,9 +769,13 @@ label:first-child{margin-top:0;}
         <label>Nama Pengeluaran</label>
         <input type="text" id="inpExpName" placeholder="cth: Beli Es Kristal"/>
         <label>Jumlah (Rp)</label>
-        <input type="number" id="inpExpAmount" placeholder="cth: 15000" min="0"/>
+        <input type="text" inputmode="numeric" id="inpExpAmount" placeholder="cth: 15.000"/>
         <label>Tanggal</label>
-        <input type="date" id="inpExpDate"/>
+        <div class="date-field-wrap">
+          <button type="button" class="date-field" id="inpExpDateField" onclick="openDatePicker('inpExpDate')"></button>
+          <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+          <input type="hidden" id="inpExpDate"/>
+        </div>
         <label>Catatan (opsional)</label>
         <textarea id="inpExpNote" rows="2" placeholder="Catatan tambahan..."></textarea>
         <button class="btn btn-danger btn-block" id="btnSaveExpense" style="margin-top:14px;">Catat Pengeluaran</button>
@@ -828,6 +920,29 @@ label:first-child{margin-top:0;}
     </div>
   </div>
 
+  <!-- OVERLAY: PILIH TANGGAL (kalender custom, tema seragam semua HP) -->
+  <div class="overlay" id="overlayDatePicker">
+    <div class="sheet dp-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h2>Pilih Tanggal</h2>
+        <button class="sheet-close" data-close="overlayDatePicker">&times;</button>
+      </div>
+      <div class="dp-nav">
+        <button type="button" id="dpPrevMonth"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="dp-month-label" id="dpMonthLabel"></div>
+        <button type="button" id="dpNextMonth"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+      </div>
+      <div class="dp-weekdays">
+        <span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span>
+      </div>
+      <div class="dp-grid" id="dpGrid"></div>
+      <div class="dp-footer">
+        <button type="button" class="dp-today-link" id="dpTodayLink">Hari Ini</button>
+      </div>
+    </div>
+  </div>
+
   <!-- OVERLAY: KONFIRMASI HAPUS -->
   <div class="overlay center" id="overlayConfirm">
     <div class="sheet" style="text-align:center;">
@@ -910,6 +1025,11 @@ function formatNumberID(n){
 /* Ambil nilai numerik murni dari input yang sudah diberi pemisah titik */
 function getCashReceived(){
   const raw = document.getElementById('inpCashReceived').value.replace(/\D/g,'');
+  return Number(raw)||0;
+}
+/* Ambil nilai numerik murni dari input Jumlah Pengeluaran yang sudah diberi pemisah titik */
+function getExpenseAmount(){
+  const raw = document.getElementById('inpExpAmount').value.replace(/\D/g,'');
   return Number(raw)||0;
 }
 function pad(n){ return n<10 ? '0'+n : ''+n; }
@@ -1210,6 +1330,10 @@ document.getElementById('inpCashReceived').addEventListener('input', (e)=>{
   e.target.value = raw ? formatNumberID(raw) : '';
   recalcChange();
   updateCheckoutState();
+});
+document.getElementById('inpExpAmount').addEventListener('input', (e)=>{
+  const raw = e.target.value.replace(/\D/g,'');
+  e.target.value = raw ? formatNumberID(raw) : '';
 });
 function recalcChange(){
   const received = getCashReceived();
@@ -1522,11 +1646,11 @@ document.getElementById('btnConfirmDeleteYes').addEventListener('click', async (
 });
 
 /* ============ PENGELUARAN ============ */
-document.getElementById('inpExpDate').value = todayStr();
+setDateInput('inpExpDate', todayStr());
 
 document.getElementById('btnSaveExpense').addEventListener('click', async ()=>{
   const name = document.getElementById('inpExpName').value.trim();
-  const amount = Number(document.getElementById('inpExpAmount').value);
+  const amount = getExpenseAmount();
   const note = document.getElementById('inpExpNote').value.trim();
   const dateVal = document.getElementById('inpExpDate').value || todayStr();
   if(!name){ showToast('Nama pengeluaran wajib diisi'); return; }
@@ -1547,7 +1671,7 @@ document.getElementById('btnSaveExpense').addEventListener('click', async ()=>{
     document.getElementById('inpExpName').value='';
     document.getElementById('inpExpAmount').value='';
     document.getElementById('inpExpNote').value='';
-    document.getElementById('inpExpDate').value = todayStr();
+    setDateInput('inpExpDate', todayStr());
     loadExpenseList();
   }catch(err){
     console.error(err);
@@ -1596,13 +1720,98 @@ function formatDateID(str){
   return d+' '+bulan[Number(m)]+' '+y;
 }
 
+/* ============ CUSTOM DATE PICKER (tema seragam, sama di semua HP) ============ */
+const DP_BULAN_PANJANG = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+let dpTargetId = null;
+let dpViewYear = 0;
+let dpViewMonth = 0;
+
+/* Set nilai input tanggal (hidden) + tampilan tombolnya sekaligus */
+function setDateInput(id, dateStr){
+  const hidden = document.getElementById(id);
+  const field = document.getElementById(id+'Field');
+  const prevVal = hidden.value;
+  hidden.value = dateStr;
+  if(field){
+    field.textContent = formatDateID(dateStr);
+    field.classList.remove('placeholder');
+  }
+  if(prevVal !== dateStr){
+    hidden.dispatchEvent(new Event('change'));
+  }
+}
+
+function openDatePicker(targetId){
+  dpTargetId = targetId;
+  const current = document.getElementById(targetId).value || todayStr();
+  const [y,m] = current.split('-').map(Number);
+  dpViewYear = y;
+  dpViewMonth = m-1;
+  renderDatePicker();
+  openOverlay('overlayDatePicker');
+}
+
+function renderDatePicker(){
+  document.getElementById('dpMonthLabel').textContent = DP_BULAN_PANJANG[dpViewMonth]+' '+dpViewYear;
+  const selectedStr = document.getElementById(dpTargetId).value || '';
+  const todayS = todayStr();
+  const firstOfMonth = new Date(dpViewYear, dpViewMonth, 1);
+  const startOffset = firstOfMonth.getDay(); // 0=Minggu
+  const daysInMonth = new Date(dpViewYear, dpViewMonth+1, 0).getDate();
+  const daysInPrevMonth = new Date(dpViewYear, dpViewMonth, 0).getDate();
+
+  const cells = [];
+  for(let i=startOffset-1;i>=0;i--){
+    cells.push({d:daysInPrevMonth-i, muted:true, dateStr:null});
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = dpViewYear+'-'+pad(dpViewMonth+1)+'-'+pad(d);
+    cells.push({d, muted:false, dateStr});
+  }
+  while(cells.length % 7 !== 0){
+    cells.push({d:cells.length, muted:true, dateStr:null});
+  }
+
+  const grid = document.getElementById('dpGrid');
+  grid.innerHTML = cells.map(c=>{
+    if(c.muted) return '<span class="dp-day muted">'+c.d+'</span>';
+    let cls = 'dp-day';
+    if(c.dateStr === todayS) cls += ' today';
+    if(c.dateStr === selectedStr) cls += ' selected';
+    return '<button type="button" class="'+cls+'" data-date="'+c.dateStr+'">'+c.d+'</button>';
+  }).join('');
+
+  grid.querySelectorAll('.dp-day[data-date]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      setDateInput(dpTargetId, btn.dataset.date);
+      closeOverlay('overlayDatePicker');
+      if(dpTargetId === 'reportDate') loadReport();
+    });
+  });
+}
+
+document.getElementById('dpPrevMonth').addEventListener('click', ()=>{
+  dpViewMonth--;
+  if(dpViewMonth<0){ dpViewMonth=11; dpViewYear--; }
+  renderDatePicker();
+});
+document.getElementById('dpNextMonth').addEventListener('click', ()=>{
+  dpViewMonth++;
+  if(dpViewMonth>11){ dpViewMonth=0; dpViewYear++; }
+  renderDatePicker();
+});
+document.getElementById('dpTodayLink').addEventListener('click', ()=>{
+  setDateInput(dpTargetId, todayStr());
+  closeOverlay('overlayDatePicker');
+  if(dpTargetId === 'reportDate') loadReport();
+});
+
 /* ============ LAPORAN ============ */
-document.getElementById('reportDate').value = todayStr();
+setDateInput('reportDate', todayStr());
 document.getElementById('btnToday').addEventListener('click', ()=>{
-  document.getElementById('reportDate').value = todayStr();
+  setDateInput('reportDate', todayStr());
   loadReport();
 });
-document.getElementById('reportDate').addEventListener('change', loadReport);
 
 async function loadReport(){
   const dateVal = document.getElementById('reportDate').value || todayStr();
