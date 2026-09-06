@@ -355,6 +355,18 @@ label:first-child{margin-top:0;}
   box-shadow:0 -8px 18px rgba(255,253,247,.92);
   margin-bottom:0 !important;
 }
+.bill-editor-actions{
+  position:sticky;
+  bottom:0;
+  z-index:3;
+  background:var(--cream-50);
+  box-shadow:0 -8px 18px rgba(255,253,247,.92);
+  display:flex;
+  gap:8px;
+  padding-top:8px;
+  margin-top:10px;
+}
+.bill-editor-actions .btn{flex:1;padding:13px 8px;font-size:12.5px;}
 @supports not (height:100dvh){
   .admin-order-sheet{height:100vh;max-height:100vh;}
 }
@@ -428,6 +440,7 @@ label:first-child{margin-top:0;}
 .admin-order-no{font-weight:800;color:var(--teal-950);font-size:13px;flex:1;}
 .status-pill{font-size:10px;font-weight:800;border-radius:999px;padding:5px 8px;}
 .status-pill.pending{background:var(--gold-100);color:var(--teal-950);border:1px solid var(--gold-500);}
+.status-pill.openbill{background:var(--rust-100);color:var(--rust-700);border:1px solid var(--rust-600);}
 .status-pill.done{background:#e4f1ec;color:var(--teal-800);border:1px solid #b9d7ce;}
 .admin-order-items{font-size:11.5px;color:var(--ink-600);line-height:1.55;margin-bottom:7px;}
 .admin-order-foot{display:flex;align-items:center;gap:8px;}
@@ -952,6 +965,50 @@ label:first-child{margin-top:0;}
       </div>
 
       <button class="btn btn-gold btn-block" id="btnCheckout" style="padding:15px;font-size:15px;">Selesaikan Transaksi</button>
+      <button class="btn btn-outline btn-block" id="btnSaveOpenBill" style="padding:13px;font-size:13.5px;margin-top:8px;">Simpan Dulu (Open Bill)</button>
+    </div>
+  </div>
+
+  <!-- OVERLAY: EDIT / LANJUTKAN ORDERAN (Open Bill dari Kasir atau Order Admin) -->
+  <div class="overlay" id="overlayBillEditor">
+    <div class="sheet admin-order-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h2 id="billEditorTitle">Orderan</h2>
+        <button class="sheet-close" data-close="overlayBillEditor">&times;</button>
+      </div>
+      <div class="tabs" id="billCategoryTabs"></div>
+      <div class="menu-grid" id="billMenuGrid"></div>
+      <div class="empty-state" id="billMenuEmpty" style="display:none;">Belum ada menu.</div>
+
+      <div class="subsection-title">Item Pesanan</div>
+      <div id="billCartList"></div>
+      <div class="empty-state" id="billCartEmpty" style="display:none;padding:16px;">Belum ada item.</div>
+      <div class="admin-cart-total"><span>Total</span><b id="billCartTotal">Rp0</b></div>
+
+      <div style="margin-top:14px;">
+        <label>Metode Pembayaran</label>
+        <div class="pay-toggle">
+          <button type="button" id="billPayCash" data-method="cash">
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+            Cash
+          </button>
+          <button type="button" id="billPayQris" data-method="qris">
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v3M17 20h4"/></svg>
+            QRIS
+          </button>
+        </div>
+      </div>
+      <div id="billCashInputWrap" style="display:none;">
+        <label>Uang Diterima</label>
+        <input type="text" inputmode="numeric" id="billInpCashReceived" placeholder="0"/>
+        <div class="change-row" id="billChangeRow"></div>
+      </div>
+
+      <div class="bill-editor-actions">
+        <button class="btn btn-outline" id="btnSaveBillChanges">Simpan Perubahan</button>
+        <button class="btn btn-gold" id="btnCompleteBillPayment">Selesaikan Pembayaran</button>
+      </div>
     </div>
   </div>
 
@@ -1304,26 +1361,195 @@ async function loadAdminOrders(){
   wrap.innerHTML='<div class="loading-row">Memuat...</div>';
   try{
     const snap=await db.collection('orders').limit(100).get();
-    const rows=snap.docs.map(d=>({id:d.id,...d.data()})).filter(o=>o.source==='admin').sort((a,b)=>new Date(b.createdAtClient||0)-new Date(a.createdAtClient||0));
+    const rows=snap.docs.map(d=>({id:d.id,...d.data()})).filter(o=>o.source==='admin' || o.status==='pending').sort((a,b)=>new Date(b.createdAtClient||0)-new Date(a.createdAtClient||0));
     document.getElementById('adminOrderEmpty').style.display=rows.length?'none':'block';
     wrap.innerHTML=rows.map(o=>{
       const pending=o.status==='pending'; const t=o.createdAtClient?new Date(o.createdAtClient):(o.createdAt&&o.createdAt.toDate?o.createdAt.toDate():new Date());
       const items=(o.items||[]).map(i=>escapeHtml(i.name)+' x'+i.qty).join(', ');
-      return `<div class="admin-order-card" data-id="${o.id}"><div class="admin-order-head"><div class="admin-order-no">Order #${o.id.slice(-6).toUpperCase()}</div><span class="status-pill ${pending?'pending':'done'}">${pending?'MENUNGGU KASIR':'SELESAI'}</span></div><div class="admin-order-items">${items}</div><div class="admin-order-foot"><div><div class="admin-order-total">${formatRupiah(o.total)}</div><div class="admin-order-meta">${formatDateID(o.dateStr)} • ${formatTime(t)}</div></div></div>${pending?`<div class="admin-order-actions"><button class="btn btn-gold btn-block btn-complete-admin">Selesaikan Transaksi</button><button class="btn btn-outline del-admin-order">Hapus</button></div>`:`<div class="admin-order-actions"><button class="btn btn-outline btn-block del-admin-order">Hapus</button></div>`}</div>`;
+      return `<div class="admin-order-card" data-id="${o.id}"><div class="admin-order-head"><div class="admin-order-no">Order #${o.id.slice(-6).toUpperCase()}</div><span class="status-pill ${pending?'openbill':'done'}">${pending?'OPEN BILL':'SELESAI'}</span></div><div class="admin-order-items">${items}</div><div class="admin-order-foot"><div><div class="admin-order-total">${formatRupiah(o.total)}</div><div class="admin-order-meta">${formatDateID(o.dateStr)} • ${formatTime(t)}</div></div></div>${pending?`<div class="admin-order-actions"><button class="btn btn-gold btn-block btn-continue-bill">Lanjutkan Pesanan</button><button class="btn btn-outline del-admin-order">Hapus</button></div>`:`<div class="admin-order-actions"><button class="btn btn-outline btn-block del-admin-order">Hapus</button></div>`}</div>`;
     }).join('');
-    wrap.querySelectorAll('.btn-complete-admin').forEach(btn=>btn.addEventListener('click',()=>openAdminOrderForPayment(btn.closest('.admin-order-card').dataset.id)));
+    wrap.querySelectorAll('.btn-continue-bill').forEach(btn=>btn.addEventListener('click',()=>openBillEditor(btn.closest('.admin-order-card').dataset.id)));
     wrap.querySelectorAll('.del-admin-order').forEach(btn=>btn.addEventListener('click',()=>{const id=btn.closest('.admin-order-card').dataset.id;confirmDelete('order',id,'Hapus orderan admin ini?');}));
   }catch(err){console.error(err);wrap.innerHTML='<div class="empty-state">Gagal memuat orderan.</div>';}
 }
-async function openAdminOrderForPayment(id){
+
+/* ============ BILL EDITOR (lanjutkan Open Bill: tambah/kurangi menu + bayar) ============ */
+let billCart = [];
+let billOrderId = null;
+let billActiveCategory = null;
+let billSearchTerm = '';
+let billPaymentMethod = null;
+let billOrderMeta = null; // {dateStr, source}
+
+async function openBillEditor(id){
   try{
-    const snap=await withTimeout(db.collection('orders').doc(id).get(),12000); if(!snap.exists){showToast('Orderan tidak ditemukan');return;}
-    const o=snap.data(); if(o.status!=='pending'){showToast('Orderan sudah diselesaikan');loadAdminOrders();return;}
-    pendingAdminOrderId=id; window.__pendingAdminDateStr=o.dateStr||todayStr(); cart=(o.items||[]).map(i=>({id:i.id,name:i.name,price:Number(i.price)||0,qty:Number(i.qty)||1})); paymentMethod=null;
-    document.getElementById('inpCashReceived').value=''; document.getElementById('payCash').classList.remove('active'); document.getElementById('payQris').classList.remove('active');
-    renderCartSheet(); openOverlay('overlayCart');
-  }catch(err){console.error(err);showToast('Gagal membuka orderan: '+(err&&err.message?err.message:'coba lagi'));}
+    const snap = await withTimeout(db.collection('orders').doc(id).get(), 12000);
+    if(!snap.exists){ showToast('Orderan tidak ditemukan'); return; }
+    const o = snap.data();
+    if(o.status!=='pending'){ showToast('Orderan sudah diselesaikan'); loadAdminOrders(); return; }
+    billOrderId = id;
+    billOrderMeta = {dateStr:o.dateStr||todayStr(), source:o.source||'admin'};
+    billCart = (o.items||[]).map(i=>({id:i.id,name:i.name,price:Number(i.price)||0,qty:Number(i.qty)||1}));
+    billPaymentMethod = null;
+    billSearchTerm = '';
+    document.getElementById('billEditorTitle').textContent = 'Order #'+id.slice(-6).toUpperCase();
+    document.getElementById('billInpCashReceived').value='';
+    document.getElementById('billPayCash').classList.remove('active');
+    document.getElementById('billPayQris').classList.remove('active');
+    document.getElementById('billCashInputWrap').style.display='none';
+    renderBillCategoryTabs();
+    renderBillMenuGrid();
+    renderBillCart();
+    recalcBillChange();
+    updateBillActionState();
+    openOverlay('overlayBillEditor');
+  }catch(err){ console.error(err); showToast('Gagal membuka orderan: '+(err&&err.message?err.message:'coba lagi')); }
 }
+
+function renderBillCategoryTabs(){
+  const cats=[...new Set(menuItems.map(m=>m.category).filter(Boolean))];
+  if(!billActiveCategory || !cats.includes(billActiveCategory)) billActiveCategory = cats[0] || null;
+  const wrap = document.getElementById('billCategoryTabs'); if(!wrap) return;
+  wrap.innerHTML = cats.map(c=>`<button class="tab-chip ${c===billActiveCategory?'active':''}" data-cat="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join('');
+  wrap.querySelectorAll('.tab-chip').forEach(chip=>chip.addEventListener('click',()=>{
+    billActiveCategory=chip.dataset.cat; renderBillCategoryTabs(); renderBillMenuGrid();
+  }));
+}
+function renderBillMenuGrid(){
+  const grid=document.getElementById('billMenuGrid'); if(!grid) return;
+  let items=menuItems;
+  if(billActiveCategory) items=items.filter(m=>m.category===billActiveCategory);
+  if(billSearchTerm) items=items.filter(m=>m.name.toLowerCase().includes(billSearchTerm.toLowerCase()));
+  document.getElementById('billMenuEmpty').style.display = menuItems.length? 'none':'block';
+  if(items.length===0 && menuItems.length){ grid.innerHTML='<div class="empty-state" style="grid-column:1/-1;">Menu tidak ditemukan.</div>'; return; }
+  grid.innerHTML = items.map(m=>{
+    const c=billCart.find(x=>x.id===m.id);
+    return `<button class="menu-item ${c?'in-cart':''}" data-id="${m.id}"><span class="qty-tag">${c?c.qty:''}</span><div class="name">${escapeHtml(m.name)}</div><div class="price">${formatRupiah(m.price)}</div></button>`;
+  }).join('');
+  grid.querySelectorAll('.menu-item').forEach(el=>el.addEventListener('click',()=>{
+    const item=menuItems.find(m=>m.id===el.dataset.id); if(!item) return;
+    const c=billCart.find(x=>x.id===item.id);
+    if(c) c.qty++; else billCart.push({id:item.id,name:item.name,price:item.price,qty:1});
+    renderBillMenuGrid(); renderBillCart(); recalcBillChange(); updateBillActionState();
+  }));
+}
+function changeBillQty(id, delta){
+  const c=billCart.find(x=>x.id===id); if(!c) return;
+  c.qty += delta;
+  if(c.qty<=0) billCart = billCart.filter(x=>x.id!==id);
+  renderBillMenuGrid(); renderBillCart(); recalcBillChange(); updateBillActionState();
+}
+function billCartTotal(){ return billCart.reduce((s,c)=>s+c.price*c.qty,0); }
+function renderBillCart(){
+  const list=document.getElementById('billCartList');
+  document.getElementById('billCartEmpty').style.display = billCart.length? 'none':'block';
+  list.innerHTML = billCart.map(c=>`
+    <div class="cart-row" data-id="${c.id}">
+      <div style="flex:1;min-width:0;">
+        <div class="ci-name">${escapeHtml(c.name)}</div>
+        <div class="ci-price">${formatRupiah(c.price)} / porsi</div>
+      </div>
+      <div class="qty-ctrl">
+        <button class="qminus">-</button>
+        <span>${c.qty}</span>
+        <button class="qplus">+</button>
+      </div>
+      <div class="ci-sub">${formatRupiah(c.price*c.qty)}</div>
+    </div>
+  `).join('');
+  list.querySelectorAll('.cart-row').forEach(row=>{
+    const id=row.dataset.id;
+    row.querySelector('.qminus').addEventListener('click',()=>changeBillQty(id,-1));
+    row.querySelector('.qplus').addEventListener('click',()=>changeBillQty(id,1));
+  });
+  document.getElementById('billCartTotal').textContent = formatRupiah(billCartTotal());
+}
+document.getElementById('billPayCash').addEventListener('click', ()=>setBillPayment('cash'));
+document.getElementById('billPayQris').addEventListener('click', ()=>setBillPayment('qris'));
+function setBillPayment(method){
+  billPaymentMethod = method;
+  document.getElementById('billPayCash').classList.toggle('active', method==='cash');
+  document.getElementById('billPayQris').classList.toggle('active', method==='qris');
+  document.getElementById('billCashInputWrap').style.display = method==='cash' ? 'block' : 'none';
+  updateBillActionState();
+}
+document.getElementById('billInpCashReceived').addEventListener('input', (e)=>{
+  const raw = e.target.value.replace(/\D/g,'');
+  e.target.value = raw ? formatNumberID(raw) : '';
+  recalcBillChange();
+  updateBillActionState();
+});
+function getBillCashReceived(){
+  const raw = document.getElementById('billInpCashReceived').value.replace(/\D/g,'');
+  return Number(raw)||0;
+}
+function recalcBillChange(){
+  const received = getBillCashReceived();
+  const total = billCartTotal();
+  const diff = received - total;
+  const row = document.getElementById('billChangeRow');
+  if(billPaymentMethod!=='cash' || received===0){
+    row.textContent=''; row.className='change-row'; return;
+  }
+  row.className = 'change-row' + (diff<0 ? ' negative' : '');
+  row.textContent = diff>=0 ? 'Kembalian: '+formatRupiah(diff) : 'Kurang: '+formatRupiah(Math.abs(diff));
+}
+function updateBillActionState(){
+  const saveBtn = document.getElementById('btnSaveBillChanges');
+  const payBtn = document.getElementById('btnCompleteBillPayment');
+  saveBtn.disabled = billCart.length===0;
+  let payOk = billCart.length>0 && billPaymentMethod;
+  if(billPaymentMethod==='cash') payOk = payOk && getBillCashReceived() >= billCartTotal();
+  payBtn.disabled = !payOk;
+}
+
+document.getElementById('btnSaveBillChanges').addEventListener('click', async ()=>{
+  if(!billOrderId || billCart.length===0) return;
+  const btn = document.getElementById('btnSaveBillChanges');
+  if(btn.disabled) return;
+  btn.disabled=true; const original=btn.textContent; btn.textContent='Menyimpan...'; markBusy(btn);
+  try{
+    await withTimeout(db.collection('orders').doc(billOrderId).update({
+      items: billCart.map(c=>({id:c.id,name:c.name,price:c.price,qty:c.qty})),
+      total: billCartTotal()
+    }), 12000);
+    showToast('Perubahan orderan tersimpan');
+    closeOverlay('overlayBillEditor');
+    loadAdminOrders();
+  }catch(err){ console.error(err); showToast('Gagal menyimpan perubahan: '+(err&&err.message?err.message:'coba lagi')); }
+  btn.disabled=false; unmarkBusy(btn); btn.textContent=original;
+  updateBillActionState();
+});
+
+document.getElementById('btnCompleteBillPayment').addEventListener('click', async ()=>{
+  if(!billOrderId || billCart.length===0 || !billPaymentMethod) return;
+  const btn = document.getElementById('btnCompleteBillPayment');
+  if(btn.disabled) return;
+  btn.disabled=true; const original=btn.textContent; btn.textContent='Menyimpan...'; markBusy(btn);
+  const now = new Date();
+  const total = billCartTotal();
+  const cashReceived = billPaymentMethod==='cash' ? getBillCashReceived() : null;
+  const updateData = {
+    items: billCart.map(c=>({id:c.id,name:c.name,price:c.price,qty:c.qty})),
+    total,
+    payment: billPaymentMethod,
+    cashReceived,
+    status: 'completed',
+    completedAtClient: now.toISOString()
+  };
+  try{
+    await withTimeout(db.collection('orders').doc(billOrderId).update(updateData), 12000);
+    const change = billPaymentMethod==='cash' ? (cashReceived - total) : 0;
+    fillReceipt(billOrderId, {items:updateData.items, total, payment:billPaymentMethod, cashReceived}, now, change);
+    closeOverlay('overlayBillEditor');
+    openOverlay('overlaySuccess');
+    showToast('Pembayaran selesai');
+    billOrderId=null; billCart=[]; billPaymentMethod=null;
+    loadAdminOrders();
+  }catch(err){ console.error(err); showToast('Gagal menyelesaikan pembayaran: '+(err&&err.message?err.message:'coba lagi')); }
+  btn.disabled=false; unmarkBusy(btn); btn.textContent=original;
+  updateBillActionState();
+});
 
 /* ============ CART LOGIC ============ */
 function addToCart(id){
@@ -1435,7 +1661,46 @@ function updateCheckoutState(){
     ok = ok && received >= cartTotal();
   }
   btn.disabled = !ok;
+  const saveBtn = document.getElementById('btnSaveOpenBill');
+  if(saveBtn) saveBtn.disabled = cart.length===0;
 }
+
+/* Simpan transaksi kasir sebagai Open Bill (belum dibayar), akan muncul di Order Admin */
+document.getElementById('btnSaveOpenBill').addEventListener('click', async ()=>{
+  if(cart.length===0) return;
+  const btn = document.getElementById('btnSaveOpenBill');
+  if(btn.disabled) return;
+  btn.disabled=true; const original=btn.textContent; btn.textContent='Menyimpan...'; markBusy(btn);
+  const now = new Date();
+  try{
+    await withTimeout(db.collection('orders').add({
+      items: cart.map(c=>({id:c.id, name:c.name, price:c.price, qty:c.qty})),
+      total: cartTotal(),
+      payment: null,
+      cashReceived: null,
+      dateStr: todayStr(),
+      status: 'pending',
+      source: 'kasir',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAtClient: now.toISOString()
+    }), 12000);
+    showToast('Transaksi disimpan sebagai Open Bill');
+    cart = [];
+    paymentMethod = null;
+    document.getElementById('inpCashReceived').value='';
+    document.getElementById('payCash').classList.remove('active');
+    document.getElementById('payQris').classList.remove('active');
+    closeOverlay('overlayCart');
+    renderMenuGrid();
+    updateCartBar();
+    if(document.getElementById('screen-order-admin').classList.contains('active')) loadAdminOrders();
+  }catch(err){
+    console.error(err);
+    showToast('Gagal menyimpan Open Bill: '+(err&&err.message?err.message:'coba lagi'));
+  }
+  btn.disabled=false; unmarkBusy(btn); btn.textContent=original;
+  updateCheckoutState();
+});
 
 document.getElementById('btnCheckout').addEventListener('click', async ()=>{
   if(cart.length===0 || !paymentMethod) return;
