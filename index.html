@@ -591,6 +591,62 @@ label:first-child{margin-top:0;}
 
 .subsection-title{font-size:14px;font-weight:700;color:var(--teal-950);margin:16px 0 8px;display:flex;align-items:center;justify-content:space-between;}
 
+/* ===== TAB LAPORAN (Harian / Bulanan) ===== */
+.report-tabs{display:flex;gap:8px;margin-bottom:14px;background:var(--cream-100);border-radius:10px;padding:4px;}
+.report-tab-btn{
+  flex:1;border:none;background:transparent;border-radius:8px;
+  padding:9px 4px;font-size:13px;font-weight:700;color:var(--teal-800);
+}
+.report-tab-btn.active{background:var(--teal-950);color:var(--gold-500);}
+.report-view{display:none;}
+.report-view.active{display:block;animation:fadein .18s ease;}
+
+/* ===== NAVIGASI BULAN (Laporan Bulanan) ===== */
+.month-nav-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.month-nav-btn{
+  background:var(--teal-950);color:var(--gold-500);border:none;
+  width:36px;height:36px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.month-nav-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.4;}
+.month-nav-btn:active{background:var(--teal-800);}
+.month-label{font-family:'Bebas Neue',cursive;font-size:21px;color:var(--teal-950);letter-spacing:0.5px;}
+
+/* ===== TABEL TOTALAN PER TANGGAL ===== */
+.monthly-table-wrap{
+  background:var(--white);border:1.5px solid var(--line);border-radius:var(--radius);
+  overflow-x:auto;margin-bottom:6px;-webkit-overflow-scrolling:touch;
+}
+table.monthly-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;}
+table.monthly-table th{
+  text-align:right;font-size:10px;font-weight:700;color:var(--gold-500);
+  text-transform:uppercase;letter-spacing:0.3px;
+  background:var(--teal-950);padding:9px 8px;position:sticky;top:0;
+}
+table.monthly-table th:first-child{text-align:left;}
+table.monthly-table td{padding:8px;text-align:right;border-bottom:1px solid var(--line);color:var(--ink-900);}
+table.monthly-table td:first-child{text-align:left;font-weight:700;color:var(--teal-950);}
+table.monthly-table tr:last-child td{border-bottom:none;}
+table.monthly-table tr.mtoday td{background:var(--gold-100);}
+table.monthly-table tr.mempty td{color:var(--ink-400);}
+table.monthly-table td.mdeposit{color:var(--teal-600);font-weight:600;}
+table.monthly-table td.mleft{font-weight:700;}
+table.monthly-table tfoot td{
+  font-weight:800;background:var(--cream-100);color:var(--teal-950);
+  border-top:2px solid var(--gold-500);border-bottom:none;
+}
+
+/* ===== RIWAYAT SETOR KE MANAJER ===== */
+.dep-row{
+  display:flex;align-items:center;gap:10px;
+  background:var(--white);border:1.5px solid var(--line);
+  border-radius:var(--radius);padding:10px 12px;margin-bottom:7px;
+}
+.dep-row .dep-info{flex:1;min-width:0;}
+.dep-row .dep-date{font-weight:700;font-size:13px;color:var(--teal-950);}
+.dep-row .dep-meta{font-size:10.5px;color:var(--ink-600);}
+.dep-row .dep-amt{font-family:'Bebas Neue';font-size:15.5px;color:var(--teal-600);white-space:nowrap;}
+
 /* toast */
 #toast{
   position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);
@@ -793,65 +849,137 @@ label:first-child{margin-top:0;}
 
     <!-- ================= SCREEN: LAPORAN ================= -->
     <section class="screen" id="screen-laporan">
-      <h2 class="section-title">Laporan Harian</h2>
-      <div class="report-date-row">
-        <div>
-          <label>Pilih Tanggal</label>
-          <div class="date-field-wrap outline">
-            <button type="button" class="date-field date-field-outline" id="reportDateField" onclick="openDatePicker('reportDate')"></button>
-            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-            <input type="hidden" id="reportDate"/>
-          </div>
-        </div>
-        <button class="btn btn-outline" id="btnToday" style="height:38px;margin-bottom:1px;">Hari Ini</button>
+      <h2 class="section-title">Laporan</h2>
+
+      <div class="report-tabs">
+        <button type="button" class="report-tab-btn active" data-report-tab="harian">Harian</button>
+        <button type="button" class="report-tab-btn" data-report-tab="bulanan">Bulanan</button>
       </div>
 
-      <button class="btn btn-outline btn-block" id="btnDownloadReport" style="display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:16px;">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M5 21h14"/></svg>
-        Unduh Laporan (Gambar)
-      </button>
+      <!-- ===== TAMPILAN: LAPORAN HARIAN ===== -->
+      <div class="report-view active" id="reportViewHarian">
+        <div class="report-date-row">
+          <div>
+            <label>Pilih Tanggal</label>
+            <div class="date-field-wrap outline">
+              <button type="button" class="date-field date-field-outline" id="reportDateField" onclick="openDatePicker('reportDate')"></button>
+              <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+              <input type="hidden" id="reportDate"/>
+            </div>
+          </div>
+          <button class="btn btn-outline" id="btnToday" style="height:38px;margin-bottom:1px;">Hari Ini</button>
+        </div>
 
-      <div id="reportCaptureArea">
-        <div class="report-capture-title" id="reportCaptureTitle">Laporan Harian</div>
+        <button class="btn btn-outline btn-block" id="btnDownloadReport" style="display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:16px;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M5 21h14"/></svg>
+          Unduh Laporan (Gambar)
+        </button>
+
+        <div id="reportCaptureArea">
+          <div class="report-capture-title" id="reportCaptureTitle">Laporan Harian</div>
+
+          <div class="stat-grid">
+            <div class="stat-card wide">
+              <div class="s-label">Total Penjualan</div>
+              <div class="s-value" id="statTotalSales">Rp0</div>
+            </div>
+            <div class="stat-card">
+              <div class="s-label">Tunai (Cash)</div>
+              <div class="s-value" id="statCash">Rp0</div>
+            </div>
+            <div class="stat-card">
+              <div class="s-label">QRIS</div>
+              <div class="s-value" id="statQris">Rp0</div>
+            </div>
+            <div class="stat-card">
+              <div class="s-label">Jumlah Transaksi</div>
+              <div class="s-value" id="statTxCount">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="s-label">Pengeluaran (Cash)</div>
+              <div class="s-value rust" id="statExpense">Rp0</div>
+            </div>
+            <div class="stat-card wide cash-remaining-card">
+              <div class="s-label">Sisa Cash</div>
+              <div class="s-value" id="statCashRemaining">Rp0</div>
+            </div>
+            <div class="stat-card wide">
+              <div class="s-label">Laba Bersih</div>
+              <div class="s-value" id="statNetProfit">Rp0</div>
+            </div>
+          </div>
+
+          <div class="subsection-title">Riwayat Transaksi</div>
+          <div id="reportTxList"></div>
+          <div class="empty-state" id="reportTxEmpty" style="display:none;">Belum ada transaksi di tanggal ini.</div>
+
+          <div class="subsection-title">Rincian Pengeluaran</div>
+          <div id="reportExpList"></div>
+          <div class="empty-state" id="reportExpEmpty" style="display:none;">Tidak ada pengeluaran di tanggal ini.</div>
+        </div>
+      </div>
+
+      <!-- ===== TAMPILAN: LAPORAN BULANAN ===== -->
+      <div class="report-view" id="reportViewBulanan">
+        <div class="month-nav-row">
+          <button type="button" class="month-nav-btn" id="btnMonthPrev">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="month-label" id="monthlyLabel">-</div>
+          <button type="button" class="month-nav-btn" id="btnMonthNext">
+            <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>
 
         <div class="stat-grid">
           <div class="stat-card wide">
-            <div class="s-label">Total Penjualan</div>
-            <div class="s-value" id="statTotalSales">Rp0</div>
+            <div class="s-label">Total Penjualan Bulan Ini</div>
+            <div class="s-value" id="statMonthSales">Rp0</div>
           </div>
           <div class="stat-card">
-            <div class="s-label">Tunai (Cash)</div>
-            <div class="s-value" id="statCash">Rp0</div>
+            <div class="s-label">Total Cash Masuk</div>
+            <div class="s-value" id="statMonthCash">Rp0</div>
           </div>
           <div class="stat-card">
-            <div class="s-label">QRIS</div>
-            <div class="s-value" id="statQris">Rp0</div>
-          </div>
-          <div class="stat-card">
-            <div class="s-label">Jumlah Transaksi</div>
-            <div class="s-value" id="statTxCount">0</div>
-          </div>
-          <div class="stat-card">
-            <div class="s-label">Pengeluaran (Cash)</div>
-            <div class="s-value rust" id="statExpense">Rp0</div>
+            <div class="s-label">Total Setor</div>
+            <div class="s-value" id="statMonthDeposit">Rp0</div>
           </div>
           <div class="stat-card wide cash-remaining-card">
-            <div class="s-label">Sisa Cash</div>
-            <div class="s-value" id="statCashRemaining">Rp0</div>
-          </div>
-          <div class="stat-card wide">
-            <div class="s-label">Laba Bersih</div>
-            <div class="s-value" id="statNetProfit">Rp0</div>
+            <div class="s-label">Sisa Cash Belum Disetor</div>
+            <div class="s-value" id="statMonthCashLeft">Rp0</div>
           </div>
         </div>
 
-        <div class="subsection-title">Riwayat Transaksi</div>
-        <div id="reportTxList"></div>
-        <div class="empty-state" id="reportTxEmpty" style="display:none;">Belum ada transaksi di tanggal ini.</div>
+        <div class="subsection-title">Totalan Per Tanggal</div>
+        <div class="monthly-table-wrap">
+          <table class="monthly-table">
+            <thead>
+              <tr><th>Tgl</th><th>Penjualan</th><th>Cash</th><th>Setor</th><th>Sisa</th></tr>
+            </thead>
+            <tbody id="monthlyTableBody"></tbody>
+            <tfoot id="monthlyTableFoot"></tfoot>
+          </table>
+        </div>
+        <div class="empty-state" id="monthlyTableEmpty" style="display:none;">Belum ada data di bulan ini.</div>
 
-        <div class="subsection-title">Rincian Pengeluaran</div>
-        <div id="reportExpList"></div>
-        <div class="empty-state" id="reportExpEmpty" style="display:none;">Tidak ada pengeluaran di tanggal ini.</div>
+        <div class="subsection-title">Setor ke Manajer</div>
+        <div class="card">
+          <label>Tanggal Setor</label>
+          <div class="date-field-wrap">
+            <button type="button" class="date-field" id="inpDepositDateField" onclick="openDatePicker('inpDepositDate')"></button>
+            <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+            <input type="hidden" id="inpDepositDate"/>
+          </div>
+          <label>Nominal Setor (Rp)</label>
+          <input type="text" inputmode="numeric" id="inpDepositAmount" placeholder="cth: 400.000"/>
+          <label>Catatan (opsional)</label>
+          <textarea id="inpDepositNote" rows="2" placeholder="cth: Setor tunai ke Bu Manajer"></textarea>
+          <button class="btn btn-gold btn-block" id="btnSaveDeposit" style="margin-top:14px;">Catat Setoran</button>
+        </div>
+
+        <div class="subsection-title">Riwayat Setor Bulan Ini</div>
+        <div id="depositListWrap"></div>
+        <div class="empty-state" id="depositListEmpty" style="display:none;">Belum ada setoran tercatat bulan ini.</div>
       </div>
     </section>
 
@@ -1239,7 +1367,13 @@ document.querySelectorAll('.dock-btn').forEach(btn=>{
     document.getElementById('screen-'+btn.dataset.screen).classList.add('active');
     document.getElementById('cartBar').style.display = btn.dataset.screen==='kasir' ? '' : 'none';
     updateCartBar();
-    if(btn.dataset.screen==='laporan') loadReport();
+    if(btn.dataset.screen==='laporan'){
+      if(document.querySelector('.report-tab-btn[data-report-tab="bulanan"]').classList.contains('active')){
+        loadMonthlyReport();
+      } else {
+        loadReport();
+      }
+    }
     if(btn.dataset.screen==='order-admin') loadAdminOrders();
   });
 });
@@ -1656,6 +1790,14 @@ document.getElementById('inpExpAmount').addEventListener('input', (e)=>{
   const raw = e.target.value.replace(/\D/g,'');
   e.target.value = raw ? formatNumberID(raw) : '';
 });
+document.getElementById('inpDepositAmount').addEventListener('input', (e)=>{
+  const raw = e.target.value.replace(/\D/g,'');
+  e.target.value = raw ? formatNumberID(raw) : '';
+});
+function getDepositAmount(){
+  const raw = document.getElementById('inpDepositAmount').value.replace(/\D/g,'');
+  return Number(raw)||0;
+}
 function recalcChange(){
   const received = getCashReceived();
   const total = cartTotal();
@@ -2008,6 +2150,10 @@ document.getElementById('btnConfirmDeleteYes').addEventListener('click', async (
       await withTimeout(db.collection('orders').doc(pendingDelete.id).delete(), 12000);
       showToast('Transaksi dihapus');
       if(document.getElementById('screen-laporan').classList.contains('active')) loadReport();
+    } else if(pendingDelete.type==='deposit'){
+      await withTimeout(db.collection('deposits').doc(pendingDelete.id).delete(), 12000);
+      showToast('Setoran dihapus');
+      if(document.getElementById('screen-laporan').classList.contains('active')) loadMonthlyReport();
     }
     closeOverlay('overlayConfirm');
   }catch(err){
@@ -2304,6 +2450,181 @@ document.getElementById('btnDownloadReport').addEventListener('click', async ()=
   }
   area.classList.remove('capturing');
   btn.innerHTML = originalHtml; btn.disabled = false;
+});
+
+/* ============ LAPORAN: TAB HARIAN / BULANAN ============ */
+document.querySelectorAll('.report-tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(btn.classList.contains('active')) return;
+    document.querySelectorAll('.report-tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.reportTab;
+    document.getElementById('reportViewHarian').classList.toggle('active', tab==='harian');
+    document.getElementById('reportViewBulanan').classList.toggle('active', tab==='bulanan');
+    if(tab==='bulanan'){ loadMonthlyReport(); } else { loadReport(); }
+  });
+});
+
+/* ============ LAPORAN BULANAN ============ */
+const MONTH_NAMES_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const nowForMonth = new Date();
+let monthlyYear = nowForMonth.getFullYear();
+let monthlyMonth = nowForMonth.getMonth(); // 0-11
+
+document.getElementById('btnMonthPrev').addEventListener('click', ()=>{
+  monthlyMonth--;
+  if(monthlyMonth<0){ monthlyMonth=11; monthlyYear--; }
+  loadMonthlyReport();
+});
+document.getElementById('btnMonthNext').addEventListener('click', ()=>{
+  monthlyMonth++;
+  if(monthlyMonth>11){ monthlyMonth=0; monthlyYear++; }
+  loadMonthlyReport();
+});
+
+async function loadMonthlyReport(){
+  document.getElementById('monthlyLabel').textContent = MONTH_NAMES_ID[monthlyMonth]+' '+monthlyYear;
+
+  const daysInMonth = new Date(monthlyYear, monthlyMonth+1, 0).getDate();
+  const startStr = monthlyYear+'-'+pad(monthlyMonth+1)+'-01';
+  const endStr = monthlyYear+'-'+pad(monthlyMonth+1)+'-'+pad(daysInMonth);
+  const todayS = todayStr();
+
+  const tbody = document.getElementById('monthlyTableBody');
+  tbody.innerHTML = '<tr><td colspan="5" class="loading-row">Memuat...</td></tr>';
+  document.getElementById('depositListWrap').innerHTML = '<div class="loading-row">Memuat...</div>';
+
+  try{
+    const [ordersSnap, expSnap, depSnap] = await Promise.all([
+      db.collection('orders').where('dateStr','>=',startStr).where('dateStr','<=',endStr).get(),
+      db.collection('expenses').where('dateStr','>=',startStr).where('dateStr','<=',endStr).get(),
+      db.collection('deposits').where('dateStr','>=',startStr).where('dateStr','<=',endStr).get()
+    ]);
+    const orders = ordersSnap.docs.map(d=>({id:d.id, ...d.data()})).filter(o=>o.status!=='pending');
+    const expenses = expSnap.docs.map(d=>({id:d.id, ...d.data()}));
+    const deposits = depSnap.docs.map(d=>({id:d.id, ...d.data()}));
+
+    // Agregasi per tanggal
+    const byDate = {};
+    for(let d=1; d<=daysInMonth; d++){
+      const ds = monthlyYear+'-'+pad(monthlyMonth+1)+'-'+pad(d);
+      byDate[ds] = {sales:0, cash:0, exp:0, deposit:0};
+    }
+    orders.forEach(o=>{
+      const row = byDate[o.dateStr];
+      if(!row) return;
+      row.sales += (o.total||0);
+      if(o.payment==='cash') row.cash += (o.total||0);
+    });
+    expenses.forEach(e=>{
+      const row = byDate[e.dateStr];
+      if(!row) return;
+      row.exp += (e.amount||0);
+    });
+    deposits.forEach(dep=>{
+      const row = byDate[dep.dateStr];
+      if(!row) return;
+      row.deposit += (dep.amount||0);
+    });
+
+    let totalSales=0, totalCash=0, totalExp=0, totalDeposit=0;
+    const rowsHtml = [];
+    for(let d=1; d<=daysInMonth; d++){
+      const ds = monthlyYear+'-'+pad(monthlyMonth+1)+'-'+pad(d);
+      const row = byDate[ds];
+      const cashLeft = row.cash - row.exp - row.deposit;
+      totalSales += row.sales; totalCash += row.cash; totalExp += row.exp; totalDeposit += row.deposit;
+      const isEmptyDay = row.sales===0 && row.exp===0 && row.deposit===0;
+      rowsHtml.push(`<tr class="${ds===todayS?'mtoday':''} ${isEmptyDay?'mempty':''}">
+        <td>${d}</td>
+        <td>${formatRupiah(row.sales)}</td>
+        <td>${formatRupiah(row.cash)}</td>
+        <td class="mdeposit">${formatRupiah(row.deposit)}</td>
+        <td class="mleft" style="color:${cashLeft<0?'var(--rust-600)':'var(--teal-950)'}">${formatRupiah(cashLeft)}</td>
+      </tr>`);
+    }
+    const totalCashLeft = totalCash - totalExp - totalDeposit;
+    tbody.innerHTML = rowsHtml.join('');
+    document.getElementById('monthlyTableFoot').innerHTML = `<tr>
+      <td>Total</td>
+      <td>${formatRupiah(totalSales)}</td>
+      <td>${formatRupiah(totalCash)}</td>
+      <td>${formatRupiah(totalDeposit)}</td>
+      <td>${formatRupiah(totalCashLeft)}</td>
+    </tr>`;
+    document.getElementById('monthlyTableEmpty').style.display = (orders.length||expenses.length||deposits.length) ? 'none' : 'block';
+
+    document.getElementById('statMonthSales').textContent = formatRupiah(totalSales);
+    document.getElementById('statMonthCash').textContent = formatRupiah(totalCash);
+    document.getElementById('statMonthDeposit').textContent = formatRupiah(totalDeposit);
+    const cashLeftEl = document.getElementById('statMonthCashLeft');
+    cashLeftEl.textContent = formatRupiah(totalCashLeft);
+    cashLeftEl.style.color = totalCashLeft < 0 ? 'var(--rust-600)' : 'var(--gold-500)';
+
+    // Riwayat setor (terbaru dulu)
+    deposits.sort((a,b)=> (b.dateStr||'').localeCompare(a.dateStr||''));
+    const depWrap = document.getElementById('depositListWrap');
+    document.getElementById('depositListEmpty').style.display = deposits.length? 'none':'block';
+    depWrap.innerHTML = deposits.map(dep=>`
+      <div class="dep-row" data-id="${dep.id}">
+        <div class="dep-info">
+          <div class="dep-date">${formatDateID(dep.dateStr)}</div>
+          <div class="dep-meta">${dep.note? escapeHtml(dep.note):''}</div>
+        </div>
+        <div class="dep-amt">${formatRupiah(dep.amount)}</div>
+        <button class="icon-btn danger del-dep"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
+      </div>
+    `).join('');
+    depWrap.querySelectorAll('.del-dep').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const row = btn.closest('.dep-row');
+        const id = row.dataset.id;
+        const dep = deposits.find(x=>x.id===id);
+        const label = dep ? formatRupiah(dep.amount)+' • '+formatDateID(dep.dateStr) : 'setoran ini';
+        confirmDelete('deposit', id, `Hapus setoran ${label}?`);
+      });
+    });
+  }catch(err){
+    console.error(err);
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Gagal memuat laporan. Pastikan index Firestore sudah dibuat (lihat console).</td></tr>';
+  }
+}
+
+/* ============ SETOR KE MANAJER ============ */
+setDateInput('inpDepositDate', todayStr());
+
+document.getElementById('btnSaveDeposit').addEventListener('click', async ()=>{
+  const amount = getDepositAmount();
+  const note = document.getElementById('inpDepositNote').value.trim();
+  const dateVal = document.getElementById('inpDepositDate').value || todayStr();
+  if(!amount || amount<=0){ showToast('Nominal setor tidak valid'); return; }
+  const btn = document.getElementById('btnSaveDeposit');
+  if(btn.disabled) return;
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  btn.textContent = 'Menyimpan...';
+  markBusy(btn);
+  try{
+    await withTimeout(db.collection('deposits').add({
+      amount, note,
+      dateStr: dateVal,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }), 12000);
+    showToast('Setoran dicatat');
+    document.getElementById('inpDepositAmount').value='';
+    document.getElementById('inpDepositNote').value='';
+    setDateInput('inpDepositDate', todayStr());
+    const [y,m] = dateVal.split('-').map(Number);
+    monthlyYear = y; monthlyMonth = m-1;
+    loadMonthlyReport();
+  }catch(err){
+    console.error(err);
+    showToast('Gagal mencatat setoran: '+(err && err.message ? err.message : 'coba lagi'));
+  }finally{
+    btn.disabled = false;
+    unmarkBusy(btn);
+    btn.textContent = originalLabel;
+  }
 });
 
 /* ============ UTIL ============ */
