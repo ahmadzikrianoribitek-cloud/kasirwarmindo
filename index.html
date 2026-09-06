@@ -551,7 +551,9 @@ label:first-child{margin-top:0;}
   display:flex;align-items:center;gap:10px;
   background:var(--white);border:1.5px solid var(--line);
   border-radius:var(--radius);padding:10px 12px;margin-bottom:7px;
+  cursor:pointer;
 }
+.tx-row:active{background:var(--gold-100);}
 .tx-row .tx-badge{
   width:34px;height:34px;border-radius:50%;flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
@@ -1575,6 +1577,13 @@ function fillReceipt(orderId, order, now, change){
   }
 }
 
+function showReceiptFromOrder(o){
+  const t = o.createdAtClient ? new Date(o.createdAtClient) : (o.createdAt && o.createdAt.toDate ? o.createdAt.toDate() : new Date());
+  const change = o.payment==='cash' ? ((o.cashReceived||0) - (o.total||0)) : 0;
+  fillReceipt(o.id, o, t, change);
+  openOverlay('overlaySuccess');
+}
+
 document.getElementById('btnPrintReceipt').addEventListener('click', ()=>{
   window.print();
 });
@@ -1948,12 +1957,21 @@ async function loadReport(){
       </div>`;
     }).join('');
     document.querySelectorAll('#reportTxList .del-tx').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
         const row = btn.closest('.tx-row');
         const id = row.dataset.id;
         const o = orders.find(x=>x.id===id);
         const label = o ? formatRupiah(o.total)+' \u2022 '+(o.payment==='cash'?'Tunai':'QRIS') : 'transaksi ini';
         confirmDelete('order', id, `Hapus transaksi ${label}? Ini akan mengubah total laporan.`);
+      });
+    });
+    document.querySelectorAll('#reportTxList .tx-row').forEach(row=>{
+      row.addEventListener('click', ()=>{
+        const id = row.dataset.id;
+        const o = orders.find(x=>x.id===id);
+        if(!o) return;
+        showReceiptFromOrder(o);
       });
     });
 
