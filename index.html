@@ -443,6 +443,7 @@ label:first-child{margin-top:0;}
 .status-pill.openbill{background:var(--rust-100);color:var(--rust-700);border:1px solid var(--rust-600);}
 .status-pill.done{background:#e4f1ec;color:var(--teal-800);border:1px solid #b9d7ce;}
 .admin-order-items{font-size:11.5px;color:var(--ink-600);line-height:1.55;margin-bottom:7px;}
+.admin-order-customer{font-size:11.5px;font-weight:700;color:var(--teal-800);margin-bottom:5px;}
 .admin-order-foot{display:flex;align-items:center;gap:8px;}
 .admin-order-total{font-family:'Bebas Neue';font-size:19px;color:var(--rust-600);flex:1;}
 .admin-order-meta{font-size:10px;color:var(--ink-400);margin-top:3px;}
@@ -923,6 +924,8 @@ label:first-child{margin-top:0;}
       <div class="menu-grid" id="adminMenuGrid"></div>
       <div class="empty-state" id="adminMenuEmpty" style="display:none;">Belum ada menu.</div>
       <div id="adminCartList" style="margin-top:12px;"></div>
+      <label>Nama Customer (opsional)</label>
+      <input type="text" id="inpAdminCustomerName" placeholder="cth: Budi / Meja 3"/>
       <div class="admin-cart-total"><span>Total Orderan</span><b id="adminCartTotal">Rp0</b></div>
       <button class="btn btn-gold btn-block" id="btnSaveAdminOrder" style="margin-top:10px;padding:15px;font-size:15px;">Simpan Orderan</button>
     </div>
@@ -938,6 +941,9 @@ label:first-child{margin-top:0;}
       </div>
       <div id="cartItemsList"></div>
       <div class="empty-state" id="cartEmptyState" style="display:none;padding:20px;">Keranjang masih kosong.</div>
+
+      <label>Nama Customer (opsional)</label>
+      <input type="text" id="inpCustomerName" placeholder="cth: Budi / Meja 3"/>
 
       <div style="margin-top:8px;">
         <label>Metode Pembayaran</label>
@@ -984,6 +990,8 @@ label:first-child{margin-top:0;}
       <div class="subsection-title">Item Pesanan</div>
       <div id="billCartList"></div>
       <div class="empty-state" id="billCartEmpty" style="display:none;padding:16px;">Belum ada item.</div>
+      <label>Nama Customer (opsional)</label>
+      <input type="text" id="billInpCustomerName" placeholder="cth: Budi / Meja 3"/>
       <div class="admin-cart-total"><span>Total</span><b id="billCartTotal">Rp0</b></div>
 
       <div style="margin-top:14px;">
@@ -1035,6 +1043,7 @@ label:first-child{margin-top:0;}
         <div class="r-sub">Warung Kedai Warmindo x STMJ</div>
         <div class="r-dash"></div>
         <div class="r-meta"><span id="rNo">No: -</span><span id="rDate">-</span></div>
+        <div class="r-row" id="rCustomerWrap" style="display:none;"><span>Customer</span><span id="rCustomer">-</span></div>
         <div class="r-dash"></div>
         <div id="rItems"></div>
         <div class="r-dash"></div>
@@ -1343,15 +1352,16 @@ function renderAdminCart(){
   document.getElementById('btnSaveAdminOrder').disabled=adminCart.length===0;
 }
 document.getElementById('btnAddAdminOrder').addEventListener('click',()=>{
-  adminCart=[]; adminSearchTerm=''; renderAdminCategoryTabs(); renderAdminMenuGrid(); renderAdminCart(); openOverlay('overlayAdminOrder');
+  adminCart=[]; adminSearchTerm=''; document.getElementById('inpAdminCustomerName').value=''; renderAdminCategoryTabs(); renderAdminMenuGrid(); renderAdminCart(); openOverlay('overlayAdminOrder');
 });
 document.getElementById('btnSaveAdminOrder').addEventListener('click',async()=>{
   if(!adminCart.length)return; const btn=document.getElementById('btnSaveAdminOrder'); if(btn.disabled)return;
   btn.disabled=true; const original=btn.textContent; btn.textContent='Menyimpan...'; markBusy(btn);
   const now=new Date();
+  const customerName = document.getElementById('inpAdminCustomerName').value.trim() || null;
   try{
     const ref=db.collection('orders').doc();
-    await withTimeout(ref.set({items:adminCart.map(c=>({id:c.id,name:c.name,price:c.price,qty:c.qty})),total:adminCartTotal(),payment:null,cashReceived:null,dateStr:todayStr(),status:'pending',source:'admin',createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdAtClient:now.toISOString()}),12000);
+    await withTimeout(ref.set({items:adminCart.map(c=>({id:c.id,name:c.name,price:c.price,qty:c.qty})),total:adminCartTotal(),payment:null,cashReceived:null,customerName,dateStr:todayStr(),status:'pending',source:'admin',createdAt:firebase.firestore.FieldValue.serverTimestamp(),createdAtClient:now.toISOString()}),12000);
     showToast('Orderan admin tersimpan'); closeOverlay('overlayAdminOrder'); adminCart=[]; loadAdminOrders();
   }catch(err){console.error(err);showToast('Gagal menyimpan orderan: '+(err&&err.message?err.message:'coba lagi'));}
   btn.disabled=false; unmarkBusy(btn); btn.textContent=original;
@@ -1366,7 +1376,8 @@ async function loadAdminOrders(){
     wrap.innerHTML=rows.map(o=>{
       const pending=o.status==='pending'; const t=o.createdAtClient?new Date(o.createdAtClient):(o.createdAt&&o.createdAt.toDate?o.createdAt.toDate():new Date());
       const items=(o.items||[]).map(i=>escapeHtml(i.name)+' x'+i.qty).join(', ');
-      return `<div class="admin-order-card" data-id="${o.id}"><div class="admin-order-head"><div class="admin-order-no">Order #${o.id.slice(-6).toUpperCase()}</div><span class="status-pill ${pending?'openbill':'done'}">${pending?'OPEN BILL':'SELESAI'}</span></div><div class="admin-order-items">${items}</div><div class="admin-order-foot"><div><div class="admin-order-total">${formatRupiah(o.total)}</div><div class="admin-order-meta">${formatDateID(o.dateStr)} • ${formatTime(t)}</div></div></div>${pending?`<div class="admin-order-actions"><button class="btn btn-gold btn-block btn-continue-bill">Lanjutkan Pesanan</button><button class="btn btn-outline del-admin-order">Hapus</button></div>`:`<div class="admin-order-actions"><button class="btn btn-outline btn-block del-admin-order">Hapus</button></div>`}</div>`;
+      const customerTag = o.customerName ? `<div class="admin-order-customer">👤 ${escapeHtml(o.customerName)}</div>` : '';
+      return `<div class="admin-order-card" data-id="${o.id}"><div class="admin-order-head"><div class="admin-order-no">Order #${o.id.slice(-6).toUpperCase()}</div><span class="status-pill ${pending?'openbill':'done'}">${pending?'OPEN BILL':'SELESAI'}</span></div>${customerTag}<div class="admin-order-items">${items}</div><div class="admin-order-foot"><div><div class="admin-order-total">${formatRupiah(o.total)}</div><div class="admin-order-meta">${formatDateID(o.dateStr)} • ${formatTime(t)}</div></div></div>${pending?`<div class="admin-order-actions"><button class="btn btn-gold btn-block btn-continue-bill">Lanjutkan Pesanan</button><button class="btn btn-outline del-admin-order">Hapus</button></div>`:`<div class="admin-order-actions"><button class="btn btn-outline btn-block del-admin-order">Hapus</button></div>`}</div>`;
     }).join('');
     wrap.querySelectorAll('.btn-continue-bill').forEach(btn=>btn.addEventListener('click',()=>openBillEditor(btn.closest('.admin-order-card').dataset.id)));
     wrap.querySelectorAll('.del-admin-order').forEach(btn=>btn.addEventListener('click',()=>{const id=btn.closest('.admin-order-card').dataset.id;confirmDelete('order',id,'Hapus orderan admin ini?');}));
@@ -1393,6 +1404,7 @@ async function openBillEditor(id){
     billPaymentMethod = null;
     billSearchTerm = '';
     document.getElementById('billEditorTitle').textContent = 'Order #'+id.slice(-6).toUpperCase();
+    document.getElementById('billInpCustomerName').value = o.customerName || '';
     document.getElementById('billInpCashReceived').value='';
     document.getElementById('billPayCash').classList.remove('active');
     document.getElementById('billPayQris').classList.remove('active');
@@ -1508,10 +1520,12 @@ document.getElementById('btnSaveBillChanges').addEventListener('click', async ()
   const btn = document.getElementById('btnSaveBillChanges');
   if(btn.disabled) return;
   btn.disabled=true; const original=btn.textContent; btn.textContent='Menyimpan...'; markBusy(btn);
+  const customerName = document.getElementById('billInpCustomerName').value.trim() || null;
   try{
     await withTimeout(db.collection('orders').doc(billOrderId).update({
       items: billCart.map(c=>({id:c.id,name:c.name,price:c.price,qty:c.qty})),
-      total: billCartTotal()
+      total: billCartTotal(),
+      customerName
     }), 12000);
     showToast('Perubahan orderan tersimpan');
     closeOverlay('overlayBillEditor');
@@ -1529,18 +1543,20 @@ document.getElementById('btnCompleteBillPayment').addEventListener('click', asyn
   const now = new Date();
   const total = billCartTotal();
   const cashReceived = billPaymentMethod==='cash' ? getBillCashReceived() : null;
+  const customerName = document.getElementById('billInpCustomerName').value.trim() || null;
   const updateData = {
     items: billCart.map(c=>({id:c.id,name:c.name,price:c.price,qty:c.qty})),
     total,
     payment: billPaymentMethod,
     cashReceived,
+    customerName,
     status: 'completed',
     completedAtClient: now.toISOString()
   };
   try{
     await withTimeout(db.collection('orders').doc(billOrderId).update(updateData), 12000);
     const change = billPaymentMethod==='cash' ? (cashReceived - total) : 0;
-    fillReceipt(billOrderId, {items:updateData.items, total, payment:billPaymentMethod, cashReceived}, now, change);
+    fillReceipt(billOrderId, {items:updateData.items, total, payment:billPaymentMethod, cashReceived, customerName}, now, change);
     closeOverlay('overlayBillEditor');
     openOverlay('overlaySuccess');
     showToast('Pembayaran selesai');
@@ -1672,12 +1688,14 @@ document.getElementById('btnSaveOpenBill').addEventListener('click', async ()=>{
   if(btn.disabled) return;
   btn.disabled=true; const original=btn.textContent; btn.textContent='Menyimpan...'; markBusy(btn);
   const now = new Date();
+  const customerName = document.getElementById('inpCustomerName').value.trim() || null;
   try{
     await withTimeout(db.collection('orders').add({
       items: cart.map(c=>({id:c.id, name:c.name, price:c.price, qty:c.qty})),
       total: cartTotal(),
       payment: null,
       cashReceived: null,
+      customerName,
       dateStr: todayStr(),
       status: 'pending',
       source: 'kasir',
@@ -1688,6 +1706,7 @@ document.getElementById('btnSaveOpenBill').addEventListener('click', async ()=>{
     cart = [];
     paymentMethod = null;
     document.getElementById('inpCashReceived').value='';
+    document.getElementById('inpCustomerName').value='';
     document.getElementById('payCash').classList.remove('active');
     document.getElementById('payQris').classList.remove('active');
     closeOverlay('overlayCart');
@@ -1713,6 +1732,7 @@ document.getElementById('btnCheckout').addEventListener('click', async ()=>{
     total: cartTotal(),
     payment: paymentMethod,
     cashReceived: paymentMethod==='cash' ? getCashReceived() : null,
+    customerName: document.getElementById('inpCustomerName').value.trim() || null,
     dateStr: pendingAdminOrderId ? (window.__pendingAdminDateStr || todayStr()) : todayStr(),
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     createdAtClient: now.toISOString(),
@@ -1749,6 +1769,7 @@ document.getElementById('btnCheckout').addEventListener('click', async ()=>{
     paymentMethod = null;
     if(pendingAdminOrderId){ pendingAdminOrderId=null; window.__pendingAdminDateStr=null; loadAdminOrders(); }
     document.getElementById('inpCashReceived').value='';
+    document.getElementById('inpCustomerName').value='';
     setPayment(null);
     document.getElementById('payCash').classList.remove('active');
     document.getElementById('payQris').classList.remove('active');
@@ -1824,6 +1845,13 @@ function fillReceipt(orderId, order, now, change){
   const tanggal = pad(now.getDate())+'/'+pad(now.getMonth()+1)+'/'+now.getFullYear()+' '+formatTime(now);
   document.getElementById('rNo').textContent = 'No: '+no;
   document.getElementById('rDate').textContent = tanggal;
+  const customerWrap = document.getElementById('rCustomerWrap');
+  if(order.customerName){
+    customerWrap.style.display = 'flex';
+    document.getElementById('rCustomer').textContent = order.customerName;
+  } else {
+    customerWrap.style.display = 'none';
+  }
   document.getElementById('rItems').innerHTML = order.items.map(i=>`
     <div class="r-item">
       <div class="r-item-name"><span>${escapeHtml(i.name)}</span><span>${formatRupiah(i.price*i.qty)}</span></div>
@@ -2214,7 +2242,7 @@ async function loadReport(){
             : '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>'}
         </div>
         <div class="tx-info">
-          <div class="tx-time">${formatTime(t)} &bull; ${o.payment==='cash'?'Tunai':'QRIS'}</div>
+          <div class="tx-time">${formatTime(t)} &bull; ${o.payment==='cash'?'Tunai':'QRIS'}${o.customerName?' &bull; '+escapeHtml(o.customerName):''}</div>
           <div class="tx-items">${escapeHtml(itemNames)}</div>
         </div>
         <div class="tx-total">${formatRupiah(o.total)}</div>
