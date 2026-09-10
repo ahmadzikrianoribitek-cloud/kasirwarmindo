@@ -659,12 +659,12 @@ table.monthly-table{width:100%;border-collapse:separate;border-spacing:0;font-si
    sebelumnya masih kelihatan nyelip di atas header saat discroll. */
 table.monthly-table thead{position:sticky;top:-14px;z-index:2;}
 table.monthly-table th{
-  text-align:right;font-size:8.5px;font-weight:700;color:var(--gold-500);
-  text-transform:uppercase;letter-spacing:0.2px;line-height:1.2;
+  text-align:center;font-size:7px;font-weight:700;color:var(--gold-500);
+  text-transform:uppercase;letter-spacing:0px;line-height:1.2;
   background:var(--teal-950);padding:8px 2px;
-  white-space:normal;word-break:break-word;
+  white-space:nowrap;overflow:hidden;text-overflow:clip;
 }
-table.monthly-table th:first-child{text-align:left;border-top-left-radius:var(--radius);}
+table.monthly-table th:first-child{border-top-left-radius:var(--radius);}
 table.monthly-table th:last-child{border-top-right-radius:var(--radius);}
 table.monthly-table td{padding:7px 2px;text-align:right;border-bottom:1px solid var(--line);color:var(--ink-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;}
 table.monthly-table td:first-child{text-align:left;font-weight:700;color:var(--teal-950);}
