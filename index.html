@@ -996,7 +996,7 @@ table.monthly-table tfoot td{
         <div class="monthly-table-wrap">
           <table class="monthly-table">
             <thead>
-              <tr><th>Tgl</th><th>Penjualan</th><th>Cash</th><th>Setor</th><th>Sisa</th></tr>
+              <tr><th>Tgl</th><th>Penjualan</th><th>Cash</th><th>QRIS</th><th>Pengeluaran</th><th>Setor</th><th>Sisa Cash</th></tr>
             </thead>
             <tbody id="monthlyTableBody"></tbody>
             <tfoot id="monthlyTableFoot"></tfoot>
@@ -2656,7 +2656,7 @@ async function loadMonthlyReport(){
   const todayS = todayStr();
 
   const tbody = document.getElementById('monthlyTableBody');
-  tbody.innerHTML = '<tr><td colspan="5" class="loading-row">Memuat...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" class="loading-row">Memuat...</td></tr>';
   document.getElementById('depositListWrap').innerHTML = '<div class="loading-row">Memuat...</div>';
 
   try{
@@ -2673,13 +2673,14 @@ async function loadMonthlyReport(){
     const byDate = {};
     for(let d=1; d<=daysInMonth; d++){
       const ds = monthlyYear+'-'+pad(monthlyMonth+1)+'-'+pad(d);
-      byDate[ds] = {sales:0, cash:0, exp:0, deposit:0};
+      byDate[ds] = {sales:0, cash:0, qris:0, exp:0, deposit:0};
     }
     orders.forEach(o=>{
       const row = byDate[o.dateStr];
       if(!row) return;
       row.sales += (o.total||0);
       if(o.payment==='cash') row.cash += (o.total||0);
+      if(o.payment==='qris') row.qris += (o.total||0);
     });
     expenses.forEach(e=>{
       const row = byDate[e.dateStr];
@@ -2692,18 +2693,20 @@ async function loadMonthlyReport(){
       row.deposit += (dep.amount||0);
     });
 
-    let totalSales=0, totalCash=0, totalExp=0, totalDeposit=0;
+    let totalSales=0, totalCash=0, totalQris=0, totalExp=0, totalDeposit=0;
     const rowsHtml = [];
     for(let d=1; d<=daysInMonth; d++){
       const ds = monthlyYear+'-'+pad(monthlyMonth+1)+'-'+pad(d);
       const row = byDate[ds];
       const cashLeft = row.cash - row.exp - row.deposit;
-      totalSales += row.sales; totalCash += row.cash; totalExp += row.exp; totalDeposit += row.deposit;
+      totalSales += row.sales; totalCash += row.cash; totalQris += row.qris; totalExp += row.exp; totalDeposit += row.deposit;
       const isEmptyDay = row.sales===0 && row.exp===0 && row.deposit===0;
       rowsHtml.push(`<tr class="${ds===todayS?'mtoday':''} ${isEmptyDay?'mempty':''}">
         <td>${d}</td>
         <td>${formatRupiah(row.sales)}</td>
         <td>${formatRupiah(row.cash)}</td>
+        <td>${formatRupiah(row.qris)}</td>
+        <td>${formatRupiah(row.exp)}</td>
         <td class="mdeposit">${formatRupiah(row.deposit)}</td>
         <td class="mleft" style="color:${cashLeft<0?'var(--rust-600)':'var(--teal-950)'}">${formatRupiah(cashLeft)}</td>
       </tr>`);
@@ -2714,6 +2717,8 @@ async function loadMonthlyReport(){
       <td>Total</td>
       <td>${formatRupiah(totalSales)}</td>
       <td>${formatRupiah(totalCash)}</td>
+      <td>${formatRupiah(totalQris)}</td>
+      <td>${formatRupiah(totalExp)}</td>
       <td>${formatRupiah(totalDeposit)}</td>
       <td>${formatRupiah(totalCashLeft)}</td>
     </tr>`;
@@ -2751,7 +2756,7 @@ async function loadMonthlyReport(){
     });
   }catch(err){
     console.error(err);
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Gagal memuat laporan. Pastikan index Firestore sudah dibuat (lihat console).</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Gagal memuat laporan. Pastikan index Firestore sudah dibuat (lihat console).</td></tr>';
   }
 }
 
