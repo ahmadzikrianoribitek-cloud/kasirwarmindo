@@ -508,6 +508,11 @@ label:first-child{margin-top:0;}
 .report-capture-title{display:none;font-family:'Bebas Neue';font-size:22px;letter-spacing:0.5px;color:var(--teal-950);margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--gold-500);}
 #reportCaptureArea.capturing{padding:16px;}
 #reportCaptureArea.capturing .report-capture-title{display:block;}
+#monthlyCaptureArea{background:var(--cream-50);}
+#monthlyCaptureArea.capturing{padding:16px;}
+#monthlyCaptureArea.capturing .report-capture-title{display:block;}
+/* Saat diunduh: hanya judul + tabel yang ikut, kartu angka ringkasan disembunyikan */
+#monthlyCaptureArea.capturing .stat-grid{display:none;}
 .report-date-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:14px;}
 .report-date-row > div{flex:1;}
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px;}
@@ -645,16 +650,23 @@ label:first-child{margin-top:0;}
 /* ===== TABEL TOTALAN PER TANGGAL ===== */
 .monthly-table-wrap{
   background:var(--white);border:1.5px solid var(--line);border-radius:var(--radius);
-  overflow-x:auto;margin-bottom:6px;-webkit-overflow-scrolling:touch;
+  margin-bottom:6px;isolation:isolate;
 }
-table.monthly-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;}
+table.monthly-table{width:100%;border-collapse:separate;border-spacing:0;font-size:11px;table-layout:fixed;}
+/* FIX: sticky hanya dipasang di <thead> (bukan dobel di setiap <th>), dan
+   top digeser -14px karena <main> punya padding-top:14px. Sebelumnya header
+   nempel 14px di bawah tepi atas area scroll, jadi ada celah tempat baris
+   sebelumnya masih kelihatan nyelip di atas header saat discroll. */
+table.monthly-table thead{position:sticky;top:-14px;z-index:2;}
 table.monthly-table th{
-  text-align:right;font-size:10px;font-weight:700;color:var(--gold-500);
-  text-transform:uppercase;letter-spacing:0.3px;
-  background:var(--teal-950);padding:9px 8px;position:sticky;top:0;
+  text-align:right;font-size:8.5px;font-weight:700;color:var(--gold-500);
+  text-transform:uppercase;letter-spacing:0.2px;line-height:1.2;
+  background:var(--teal-950);padding:8px 2px;
+  white-space:normal;word-break:break-word;
 }
-table.monthly-table th:first-child{text-align:left;}
-table.monthly-table td{padding:8px;text-align:right;border-bottom:1px solid var(--line);color:var(--ink-900);}
+table.monthly-table th:first-child{text-align:left;border-top-left-radius:var(--radius);}
+table.monthly-table th:last-child{border-top-right-radius:var(--radius);}
+table.monthly-table td{padding:7px 2px;text-align:right;border-bottom:1px solid var(--line);color:var(--ink-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;}
 table.monthly-table td:first-child{text-align:left;font-weight:700;color:var(--teal-950);}
 table.monthly-table tr:last-child td{border-bottom:none;}
 table.monthly-table tr.mtoday td{background:var(--gold-100);}
@@ -665,6 +677,15 @@ table.monthly-table tfoot td{
   font-weight:800;background:var(--cream-100);color:var(--teal-950);
   border-top:2px solid var(--gold-500);border-bottom:none;
 }
+table.monthly-table tfoot td:first-child{border-bottom-left-radius:var(--radius);}
+table.monthly-table tfoot td:last-child{border-bottom-right-radius:var(--radius);}
+/* Saat diunduh sebagai gambar: lebarkan kolom otomatis agar angka lengkap (000) tidak terpotong */
+table.monthly-table.capturing-full{table-layout:auto;}
+table.monthly-table.capturing-full th,
+table.monthly-table.capturing-full td{white-space:nowrap;overflow:visible;text-overflow:clip;padding-left:8px;padding-right:8px;}
+table.monthly-table.capturing-full th{font-size:9.5px;}
+table.monthly-table.capturing-full td{font-size:12px;}
+
 
 /* ===== RIWAYAT SETOR KE MANAJER ===== */
 .dep-row{
@@ -973,36 +994,56 @@ table.monthly-table tfoot td{
           </button>
         </div>
 
-        <div class="stat-grid">
-          <div class="stat-card wide">
-            <div class="s-label">Total Penjualan Bulan Ini</div>
-            <div class="s-value" id="statMonthSales">Rp0</div>
+        <button class="btn btn-outline btn-block" id="btnDownloadMonthlyReport" style="display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:16px;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M5 21h14"/></svg>
+          Unduh Laporan (Gambar)
+        </button>
+
+        <div id="monthlyCaptureArea">
+          <div class="report-capture-title" id="monthlyCaptureTitle">Laporan Bulanan</div>
+
+          <div class="stat-grid">
+            <div class="stat-card wide">
+              <div class="s-label">Total Penjualan Bulan Ini</div>
+              <div class="s-value" id="statMonthSales">Rp0</div>
+            </div>
+            <div class="stat-card">
+              <div class="s-label">Total Cash Masuk</div>
+              <div class="s-value" id="statMonthCash">Rp0</div>
+            </div>
+            <div class="stat-card">
+              <div class="s-label">Total Setor</div>
+              <div class="s-value" id="statMonthDeposit">Rp0</div>
+            </div>
+            <div class="stat-card wide cash-remaining-card">
+              <div class="s-label">Sisa Cash Belum Disetor</div>
+              <div class="s-value" id="statMonthCashLeft">Rp0</div>
+            </div>
           </div>
-          <div class="stat-card">
-            <div class="s-label">Total Cash Masuk</div>
-            <div class="s-value" id="statMonthCash">Rp0</div>
+
+          <div class="subsection-title">Totalan Per Tanggal</div>
+          <div class="monthly-table-wrap">
+            <table class="monthly-table">
+              <colgroup>
+                <col style="width:7%">
+                <col style="width:16%">
+                <col style="width:15%">
+                <col style="width:15%">
+                <col style="width:15%">
+                <col style="width:13%">
+                <col style="width:19%">
+              </colgroup>
+              <thead>
+                <tr><th>Tgl</th><th>Penjualan</th><th>Cash</th><th>QRIS</th><th>Pengeluaran</th><th>Setor</th><th>Sisa Cash</th></tr>
+              </thead>
+              <tbody id="monthlyTableBody"></tbody>
+              <tfoot id="monthlyTableFoot"></tfoot>
+            </table>
           </div>
-          <div class="stat-card">
-            <div class="s-label">Total Setor</div>
-            <div class="s-value" id="statMonthDeposit">Rp0</div>
-          </div>
-          <div class="stat-card wide cash-remaining-card">
-            <div class="s-label">Sisa Cash Belum Disetor</div>
-            <div class="s-value" id="statMonthCashLeft">Rp0</div>
-          </div>
+          <div class="empty-state" id="monthlyTableEmpty" style="display:none;">Belum ada data di bulan ini.</div>
         </div>
 
-        <div class="subsection-title">Totalan Per Tanggal</div>
-        <div class="monthly-table-wrap">
-          <table class="monthly-table">
-            <thead>
-              <tr><th>Tgl</th><th>Penjualan</th><th>Cash</th><th>QRIS</th><th>Pengeluaran</th><th>Setor</th><th>Sisa Cash</th></tr>
-            </thead>
-            <tbody id="monthlyTableBody"></tbody>
-            <tfoot id="monthlyTableFoot"></tfoot>
-          </table>
-        </div>
-        <div class="empty-state" id="monthlyTableEmpty" style="display:none;">Belum ada data di bulan ini.</div>
+
 
         <div class="subsection-title">Setor ke Manajer</div>
         <div class="card">
@@ -1333,6 +1374,21 @@ let pendingAdminOrderId = null;
 function formatRupiah(n){
   n = Number(n)||0;
   return 'Rp' + n.toLocaleString('id-ID');
+}
+/* Format Rupiah ringkas (mis. Rp1,2jt / Rp850rb) khusus tabel sempit di layar HP */
+function formatRupiahShort(n){
+  n = Number(n)||0;
+  const sign = n<0 ? '-' : '';
+  const abs = Math.abs(n);
+  if(abs >= 1000000){
+    const v = abs/1000000;
+    const s = (v>=100? Math.round(v) : v.toFixed(1).replace(/\.0$/,'')).toString().replace('.',',');
+    return sign+'Rp'+s+'jt';
+  }
+  if(abs >= 1000){
+    return sign+'Rp'+Math.round(abs/1000)+'rb';
+  }
+  return sign+'Rp'+abs.toLocaleString('id-ID');
 }
 /* Format angka dengan pemisah ribuan titik (tanpa "Rp"), untuk input Uang Diterima */
 function formatNumberID(n){
@@ -2617,6 +2673,61 @@ document.getElementById('btnDownloadReport').addEventListener('click', async ()=
   btn.innerHTML = originalHtml; btn.disabled = false;
 });
 
+document.getElementById('btnDownloadMonthlyReport').addEventListener('click', async ()=>{
+  const btn = document.getElementById('btnDownloadMonthlyReport');
+  const originalHtml = btn.innerHTML;
+  btn.textContent = 'Memproses...'; btn.disabled = true;
+  const area = document.getElementById('monthlyCaptureArea');
+  const table = area.querySelector('table.monthly-table');
+  const appEl = document.querySelector('.app');
+  const mainEl = document.querySelector('main');
+  area.classList.add('capturing');
+  table.classList.add('capturing-full');
+  // Ganti sementara angka singkat (rb/jt) jadi angka lengkap (000) untuk gambar unduhan
+  const swappedCells = table.querySelectorAll('td[title]');
+  swappedCells.forEach(td=>{
+    td.dataset.shortText = td.textContent;
+    td.textContent = td.getAttribute('title');
+  });
+
+  // Saat angka penuh (000) ditampilkan, tabel bisa jadi lebih lebar dari layar.
+  // Buka sementara batas overflow supaya tidak ada kolom yang kepotong,
+  // lalu ukur lebar asli tabel dan terapkan ke area unduhan.
+  const prevAppOverflow = appEl.style.overflow;
+  const prevMainOverflow = mainEl.style.overflow;
+  const prevAreaWidth = area.style.width;
+  appEl.style.overflow = 'visible';
+  mainEl.style.overflow = 'visible';
+  const areaCs = getComputedStyle(area);
+  const paddingX = parseFloat(areaCs.paddingLeft) + parseFloat(areaCs.paddingRight);
+  const neededWidth = Math.ceil(table.scrollWidth + paddingX) + 8;
+  area.style.width = neededWidth + 'px';
+  const renderWidth = Math.min(Math.max(neededWidth + 40, window.innerWidth), 840);
+
+  try{
+    const canvas = await html2canvas(area, {backgroundColor:'#fbf5e4', scale:2, width:neededWidth, windowWidth:renderWidth});
+    const link = document.createElement('a');
+    const fileTag = monthlyYear+'-'+pad(monthlyMonth+1);
+    link.download = 'laporan-bulanan-'+fileTag+'.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('Laporan bulanan tersimpan sebagai gambar');
+  }catch(err){
+    console.error(err);
+    showToast('Gagal menyimpan laporan');
+  }
+  swappedCells.forEach(td=>{
+    td.textContent = td.dataset.shortText;
+    delete td.dataset.shortText;
+  });
+  table.classList.remove('capturing-full');
+  area.classList.remove('capturing');
+  appEl.style.overflow = prevAppOverflow;
+  mainEl.style.overflow = prevMainOverflow;
+  area.style.width = prevAreaWidth;
+  btn.innerHTML = originalHtml; btn.disabled = false;
+});
+
 /* ============ LAPORAN: TAB HARIAN / BULANAN ============ */
 document.querySelectorAll('.report-tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -2649,6 +2760,7 @@ document.getElementById('btnMonthNext').addEventListener('click', ()=>{
 
 async function loadMonthlyReport(){
   document.getElementById('monthlyLabel').textContent = MONTH_NAMES_ID[monthlyMonth]+' '+monthlyYear;
+  document.getElementById('monthlyCaptureTitle').textContent = 'Laporan Bulanan \u2022 ' + MONTH_NAMES_ID[monthlyMonth]+' '+monthlyYear;
 
   const daysInMonth = new Date(monthlyYear, monthlyMonth+1, 0).getDate();
   const startStr = monthlyYear+'-'+pad(monthlyMonth+1)+'-01';
@@ -2703,24 +2815,24 @@ async function loadMonthlyReport(){
       const isEmptyDay = row.sales===0 && row.exp===0 && row.deposit===0;
       rowsHtml.push(`<tr class="${ds===todayS?'mtoday':''} ${isEmptyDay?'mempty':''}">
         <td>${d}</td>
-        <td>${formatRupiah(row.sales)}</td>
-        <td>${formatRupiah(row.cash)}</td>
-        <td>${formatRupiah(row.qris)}</td>
-        <td>${formatRupiah(row.exp)}</td>
-        <td class="mdeposit">${formatRupiah(row.deposit)}</td>
-        <td class="mleft" style="color:${cashLeft<0?'var(--rust-600)':'var(--teal-950)'}">${formatRupiah(cashLeft)}</td>
+        <td title="${formatRupiah(row.sales)}">${formatRupiahShort(row.sales)}</td>
+        <td title="${formatRupiah(row.cash)}">${formatRupiahShort(row.cash)}</td>
+        <td title="${formatRupiah(row.qris)}">${formatRupiahShort(row.qris)}</td>
+        <td title="${formatRupiah(row.exp)}">${formatRupiahShort(row.exp)}</td>
+        <td class="mdeposit" title="${formatRupiah(row.deposit)}">${formatRupiahShort(row.deposit)}</td>
+        <td class="mleft" style="color:${cashLeft<0?'var(--rust-600)':'var(--teal-950)'}" title="${formatRupiah(cashLeft)}">${formatRupiahShort(cashLeft)}</td>
       </tr>`);
     }
     const totalCashLeft = totalCash - totalExp - totalDeposit;
     tbody.innerHTML = rowsHtml.join('');
     document.getElementById('monthlyTableFoot').innerHTML = `<tr>
       <td>Total</td>
-      <td>${formatRupiah(totalSales)}</td>
-      <td>${formatRupiah(totalCash)}</td>
-      <td>${formatRupiah(totalQris)}</td>
-      <td>${formatRupiah(totalExp)}</td>
-      <td>${formatRupiah(totalDeposit)}</td>
-      <td>${formatRupiah(totalCashLeft)}</td>
+      <td title="${formatRupiah(totalSales)}">${formatRupiahShort(totalSales)}</td>
+      <td title="${formatRupiah(totalCash)}">${formatRupiahShort(totalCash)}</td>
+      <td title="${formatRupiah(totalQris)}">${formatRupiahShort(totalQris)}</td>
+      <td title="${formatRupiah(totalExp)}">${formatRupiahShort(totalExp)}</td>
+      <td title="${formatRupiah(totalDeposit)}">${formatRupiahShort(totalDeposit)}</td>
+      <td title="${formatRupiah(totalCashLeft)}">${formatRupiahShort(totalCashLeft)}</td>
     </tr>`;
     document.getElementById('monthlyTableEmpty').style.display = (orders.length||expenses.length||deposits.length) ? 'none' : 'block';
 
