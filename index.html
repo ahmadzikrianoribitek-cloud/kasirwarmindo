@@ -290,6 +290,13 @@ label:first-child{margin-top:0;}
   display:none;align-items:center;justify-content:center;
 }
 .menu-item.in-cart .qty-tag{display:flex;}
+.menu-item.sold-out{opacity:0.5;filter:grayscale(0.6);pointer-events:none;}
+.menu-item .soldout-tag{
+  position:absolute;top:6px;right:6px;
+  background:var(--rust-600);color:#fff;
+  font-size:9.5px;font-weight:800;letter-spacing:0.3px;
+  padding:3px 7px;border-radius:999px;text-transform:uppercase;
+}
 .empty-state{
   text-align:center;color:var(--ink-400);
   padding:40px 14px;font-size:13px;
@@ -462,6 +469,24 @@ label:first-child{margin-top:0;}
 .menu-list-row .mi-meta{font-size:11px;color:var(--ink-600);margin-top:1px;}
 .mi-thumb{width:38px;height:38px;border-radius:8px;object-fit:cover;flex-shrink:0;background:var(--cream-100);border:1px solid var(--line);}
 .mi-thumb-empty{width:38px;height:38px;border-radius:8px;flex-shrink:0;background:var(--cream-100);border:1px dashed var(--line);}
+.mi-thumb.sold-out{filter:grayscale(1);opacity:0.6;}
+.menu-list-row.sold-out{opacity:0.72;}
+.mi-badge-soldout{
+  display:inline-block;margin-left:6px;
+  background:var(--rust-100);color:var(--rust-700);border:1px solid var(--rust-600);
+  font-size:9.5px;font-weight:800;letter-spacing:0.3px;
+  padding:2px 7px;border-radius:999px;text-transform:uppercase;vertical-align:middle;
+}
+.stock-toggle{
+  border:1.5px solid var(--teal-800);border-radius:var(--radius);
+  padding:11px 14px;font-weight:700;font-size:13.5px;width:100%;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  background:var(--gold-100);color:var(--teal-800);margin-top:6px;
+}
+.stock-toggle.is-soldout{
+  background:var(--rust-100);border-color:var(--rust-600);color:var(--rust-700);
+}
+.stock-toggle svg{width:17px;height:17px;flex-shrink:0;}
 
 /* ===== FOTO MENU (paste/upload jadi base64) ===== */
 .photo-drop{
@@ -888,6 +913,11 @@ table.monthly-table.capturing-full td{font-size:12px;}
         <datalist id="categoryList"></datalist>
         <label>Harga (Rp)</label>
         <input type="number" id="inpMenuPrice" placeholder="cth: 12000" min="0"/>
+        <label>Status Stok</label>
+        <button type="button" class="stock-toggle" id="btnToggleSoldOut" data-soldout="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path id="soldOutIconPath" d="M20 6L9 17l-5-5"/></svg>
+          <span id="soldOutLabel">Tersedia</span>
+        </button>
         <label>Foto Menu (opsional)</label>
         <div class="photo-drop" id="menuPhotoDrop" tabindex="0">
           <div class="photo-drop-empty" id="menuPhotoEmpty">
@@ -1364,6 +1394,7 @@ let paymentMethod = null;
 let editingMenuId = null;
 let editingHadPhoto = false; // apakah menu yang sedang diedit sudah punya foto sebelumnya
 let currentMenuImageBase64 = null; // foto menu (base64) yang sedang disiapkan di form
+let currentMenuSoldOut = false; // status stok menu yang sedang disiapkan di form
 let pendingDelete = null; // {type,id}
 let adminCart = [];
 let adminActiveCategory = null;
@@ -1527,8 +1558,9 @@ function renderMenuGrid(){
   }
   grid.innerHTML = items.map(m=>{
     const inCart = cart.find(c=>c.id===m.id);
-    return `<button class="menu-item ${inCart?'in-cart':''}" data-id="${m.id}">
+    return `<button class="menu-item ${inCart?'in-cart':''} ${m.soldOut?'sold-out':''}" data-id="${m.id}" ${m.soldOut?'disabled':''}>
       <span class="qty-tag">${inCart?inCart.qty:''}</span>
+      ${m.soldOut?'<span class="soldout-tag">Habis</span>':''}
       <div class="name">${escapeHtml(m.name)}</div>
       <div class="price">${formatRupiah(m.price)}</div>
     </button>`;
@@ -1563,12 +1595,13 @@ function renderAdminMenuGrid(){
   if(items.length===0 && menuItems.length){ grid.innerHTML='<div class="empty-state" style="grid-column:1/-1;">Menu tidak ditemukan.</div>'; return; }
   grid.innerHTML=items.map(m=>{
     const c=adminCart.find(x=>x.id===m.id);
-    return `<button class="menu-item ${c?'in-cart':''}" data-id="${m.id}"><span class="qty-tag">${c?c.qty:''}</span><div class="name">${escapeHtml(m.name)}</div><div class="price">${formatRupiah(m.price)}</div></button>`;
+    return `<button class="menu-item ${c?'in-cart':''} ${m.soldOut?'sold-out':''}" data-id="${m.id}" ${m.soldOut?'disabled':''}><span class="qty-tag">${c?c.qty:''}</span>${m.soldOut?'<span class="soldout-tag">Habis</span>':''}<div class="name">${escapeHtml(m.name)}</div><div class="price">${formatRupiah(m.price)}</div></button>`;
   }).join('');
   grid.querySelectorAll('.menu-item').forEach(el=>el.addEventListener('click',()=>addToAdminCart(el.dataset.id)));
 }
 function addToAdminCart(id){
   const item=menuItems.find(m=>m.id===id); if(!item) return;
+  if(item.soldOut){ showToast('Menu ini sedang habis'); return; }
   const c=adminCart.find(x=>x.id===id);
   if(c)c.qty++; else adminCart.push({id:item.id,name:item.name,price:item.price,qty:1});
   renderAdminMenuGrid(); renderAdminCart();
@@ -1670,10 +1703,11 @@ function renderBillMenuGrid(){
   if(items.length===0 && menuItems.length){ grid.innerHTML='<div class="empty-state" style="grid-column:1/-1;">Menu tidak ditemukan.</div>'; return; }
   grid.innerHTML = items.map(m=>{
     const c=billCart.find(x=>x.id===m.id);
-    return `<button class="menu-item ${c?'in-cart':''}" data-id="${m.id}"><span class="qty-tag">${c?c.qty:''}</span><div class="name">${escapeHtml(m.name)}</div><div class="price">${formatRupiah(m.price)}</div></button>`;
+    return `<button class="menu-item ${c?'in-cart':''} ${m.soldOut?'sold-out':''}" data-id="${m.id}" ${m.soldOut?'disabled':''}><span class="qty-tag">${c?c.qty:''}</span>${m.soldOut?'<span class="soldout-tag">Habis</span>':''}<div class="name">${escapeHtml(m.name)}</div><div class="price">${formatRupiah(m.price)}</div></button>`;
   }).join('');
   grid.querySelectorAll('.menu-item').forEach(el=>el.addEventListener('click',()=>{
     const item=menuItems.find(m=>m.id===el.dataset.id); if(!item) return;
+    if(item.soldOut){ showToast('Menu ini sedang habis'); return; }
     const c=billCart.find(x=>x.id===item.id);
     if(c) c.qty++; else billCart.push({id:item.id,name:item.name,price:item.price,qty:1});
     renderBillMenuGrid(); renderBillCart(); recalcBillChange(); updateBillActionState();
@@ -1805,6 +1839,7 @@ document.getElementById('btnCompleteBillPayment').addEventListener('click', asyn
 function addToCart(id){
   const item = menuItems.find(m=>m.id===id);
   if(!item) return;
+  if(item.soldOut){ showToast('Menu ini sedang habis'); return; }
   const existing = cart.find(c=>c.id===id);
   if(existing) existing.qty += 1;
   else cart.push({id:item.id, name:item.name, price:item.price, qty:1});
@@ -2152,17 +2187,40 @@ function renderMenuManageList(){
     const items = menuItems.filter(m=>(m.category||'Lainnya')===cat);
     return `<div class="category-group-title">${escapeHtml(cat)}</div>` +
       items.map(m=>`
-        <div class="menu-list-row" data-id="${m.id}">
-          ${m.imageUrl ? `<img class="mi-thumb" src="${escapeHtml(m.imageUrl)}" alt="">` : `<div class="mi-thumb-empty"></div>`}
+        <div class="menu-list-row ${m.soldOut?'sold-out':''}" data-id="${m.id}">
+          ${m.imageUrl ? `<img class="mi-thumb ${m.soldOut?'sold-out':''}" src="${escapeHtml(m.imageUrl)}" alt="">` : `<div class="mi-thumb-empty"></div>`}
           <div class="mi-info">
-            <div class="mi-name">${escapeHtml(m.name)}</div>
+            <div class="mi-name">${escapeHtml(m.name)}${m.soldOut?'<span class="mi-badge-soldout">Habis</span>':''}</div>
             <div class="mi-meta">${formatRupiah(m.price)}</div>
           </div>
+          <button class="icon-btn toggle-soldout-menu" title="${m.soldOut?'Tandai tersedia':'Tandai habis'}">
+            ${m.soldOut
+              ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`
+              : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`}
+          </button>
           <button class="icon-btn edit-menu"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
           <button class="icon-btn danger del-menu"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
         </div>
       `).join('');
   }).join('');
+
+  wrap.querySelectorAll('.toggle-soldout-menu').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.closest('.menu-list-row').dataset.id;
+      const item = menuItems.find(m=>m.id===id);
+      if(!item) return;
+      btn.disabled = true;
+      try{
+        await withTimeout(db.collection('menu').doc(id).update({soldOut: !item.soldOut}), 12000);
+        showToast(!item.soldOut ? 'Menu ditandai habis' : 'Menu ditandai tersedia');
+      }catch(err){
+        console.error(err);
+        showToast('Gagal mengubah status stok');
+      }finally{
+        btn.disabled = false;
+      }
+    });
+  });
 
   wrap.querySelectorAll('.edit-menu').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -2172,6 +2230,7 @@ function renderMenuManageList(){
       document.getElementById('inpMenuName').value = item.name;
       document.getElementById('inpMenuCategory').value = item.category||'';
       document.getElementById('inpMenuPrice').value = item.price;
+      setSoldOutUI(!!item.soldOut);
       editingHadPhoto = !!item.imageUrl;
       if(item.imageUrl){
         currentMenuImageBase64 = item.imageUrl;
@@ -2205,7 +2264,7 @@ document.getElementById('btnSaveMenu').addEventListener('click', async ()=>{
   btn.textContent = 'Menyimpan...';
   markBusy(btn);
   try{
-    const payload = {name, category, price};
+    const payload = {name, category, price, soldOut: currentMenuSoldOut};
     if(currentMenuImageBase64){
       payload.imageUrl = currentMenuImageBase64;
     } else if(editingMenuId && editingHadPhoto){
@@ -2236,9 +2295,30 @@ function resetMenuForm(){
   document.getElementById('inpMenuCategory').value='';
   document.getElementById('inpMenuPrice').value='';
   clearMenuPhoto();
+  setSoldOutUI(false);
   document.getElementById('btnSaveMenu').textContent = 'Simpan Menu';
   document.getElementById('btnCancelEditMenu').style.display = 'none';
 }
+
+/* ============ STATUS STOK (Habis / Tersedia) ============ */
+function setSoldOutUI(isSoldOut){
+  currentMenuSoldOut = !!isSoldOut;
+  const btn = document.getElementById('btnToggleSoldOut');
+  const label = document.getElementById('soldOutLabel');
+  const iconPath = document.getElementById('soldOutIconPath');
+  btn.dataset.soldout = String(currentMenuSoldOut);
+  btn.classList.toggle('is-soldout', currentMenuSoldOut);
+  if(currentMenuSoldOut){
+    label.textContent = 'Habis';
+    iconPath.setAttribute('d','M6 6l12 12M18 6L6 18');
+  } else {
+    label.textContent = 'Tersedia';
+    iconPath.setAttribute('d','M20 6L9 17l-5-5');
+  }
+}
+document.getElementById('btnToggleSoldOut').addEventListener('click', ()=>{
+  setSoldOutUI(!currentMenuSoldOut);
+});
 
 /* ============ FOTO MENU: paste (Ctrl+V) / pilih file -> dikompres jadi base64 ============ */
 function showMenuPhotoPreview(src){
