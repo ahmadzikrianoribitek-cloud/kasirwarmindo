@@ -936,6 +936,10 @@ table.monthly-table.capturing-full td{font-size:12px;}
         </div>
       </div>
 
+      <div id="migratePhotoWrap" style="display:none;margin-top:14px;">
+        <button class="btn btn-outline btn-block" id="btnMigratePhotos">Migrasi Foto Lama ke Penyimpanan Baru</button>
+      </div>
+
       <div id="menuListWrap" style="margin-top:18px;"></div>
       <div class="empty-state" id="menuListEmpty" style="display:none;">Belum ada menu tersimpan.</div>
     </section>
@@ -1393,7 +1397,9 @@ let searchTerm = '';
 let paymentMethod = null;
 let editingMenuId = null;
 let editingHadPhoto = false; // apakah menu yang sedang diedit sudah punya foto sebelumnya
+let editingOriginalPhoto = null; // foto yang sudah tersimpan di menuPhotos saat form edit dibuka (buat deteksi perubahan)
 let currentMenuImageBase64 = null; // foto menu (base64) yang sedang disiapkan di form
+let menuPhotoMap = {}; // {menuId: imageUrl base64} — dari koleksi terpisah menuPhotos, supaya koleksi 'menu' tetap ringan
 let currentMenuSoldOut = false; // status stok menu yang sedang disiapkan di form
 let pendingDelete = null; // {type,id}
 let adminCart = [];
@@ -1518,9 +1524,21 @@ db.collection('menu').orderBy('name').onSnapshot(snap=>{
   renderCategoryDatalist();
   renderAdminCategoryTabs();
   renderAdminMenuGrid();
+  const legacyPhotoCount = menuItems.filter(m=>m.imageUrl).length;
+  document.getElementById('migratePhotoWrap').style.display = legacyPhotoCount ? 'block' : 'none';
 }, err=>{
   console.error(err);
   showToast('Gagal memuat menu: cek koneksi Firebase');
+});
+
+/* ============ FIRESTORE: FOTO MENU (koleksi terpisah, biar koleksi 'menu' tetap ringan/cepat) ============ */
+db.collection('menuPhotos').onSnapshot(snap=>{
+  const map = {};
+  snap.docs.forEach(d=>{ map[d.id] = (d.data()||{}).imageUrl || null; });
+  menuPhotoMap = map;
+  renderMenuManageList();
+}, err=>{
+  console.error(err);
 });
 
 function renderCategoryDatalist(){
@@ -2188,7 +2206,7 @@ function renderMenuManageList(){
     return `<div class="category-group-title">${escapeHtml(cat)}</div>` +
       items.map(m=>`
         <div class="menu-list-row ${m.soldOut?'sold-out':''}" data-id="${m.id}">
-          ${m.imageUrl ? `<img class="mi-thumb ${m.soldOut?'sold-out':''}" src="${escapeHtml(m.imageUrl)}" alt="">` : `<div class="mi-thumb-empty"></div>`}
+          ${menuPhotoMap[m.id] ? `<img class="mi-thumb ${m.soldOut?'sold-out':''}" src="${escapeHtml(menuPhotoMap[m.id])}" alt="">` : `<div class="mi-thumb-empty"></div>`}
           <div class="mi-info">
             <div class="mi-name">${escapeHtml(m.name)}${m.soldOut?'<span class="mi-badge-soldout">Habis</span>':''}</div>
             <div class="mi-meta">${formatRupiah(m.price)}</div>
@@ -2231,10 +2249,12 @@ function renderMenuManageList(){
       document.getElementById('inpMenuCategory').value = item.category||'';
       document.getElementById('inpMenuPrice').value = item.price;
       setSoldOutUI(!!item.soldOut);
-      editingHadPhoto = !!item.imageUrl;
-      if(item.imageUrl){
-        currentMenuImageBase64 = item.imageUrl;
-        showMenuPhotoPreview(item.imageUrl);
+      const existingPhoto = menuPhotoMap[id] || null;
+      editingHadPhoto = !!existingPhoto;
+      editingOriginalPhoto = existingPhoto;
+      if(existingPhoto){
+        currentMenuImageBase64 = existingPhoto;
+        showMenuPhotoPreview(existingPhoto);
       } else {
         clearMenuPhoto();
       }
@@ -2264,19 +2284,27 @@ document.getElementById('btnSaveMenu').addEventListener('click', async ()=>{
   btn.textContent = 'Menyimpan...';
   markBusy(btn);
   try{
+    // Koleksi 'menu' sengaja TIDAK menyimpan foto (biar tetap ringan & cepat dimuat).
+    // Foto (base64, bisa ratusan KB) disimpan terpisah di koleksi 'menuPhotos'.
     const payload = {name, category, price, soldOut: currentMenuSoldOut};
-    if(currentMenuImageBase64){
-      payload.imageUrl = currentMenuImageBase64;
-    } else if(editingMenuId && editingHadPhoto){
-      payload.imageUrl = firebase.firestore.FieldValue.delete();
-    }
+    let menuId = editingMenuId;
     if(editingMenuId){
       await withTimeout(db.collection('menu').doc(editingMenuId).update(payload), 12000);
-      showToast('Menu diperbarui');
     } else {
-      await withTimeout(db.collection('menu').add(payload), 12000);
-      showToast('Menu ditambahkan');
+      const ref = await withTimeout(db.collection('menu').add(payload), 12000);
+      menuId = ref.id;
     }
+
+    const photoChanged = currentMenuImageBase64 !== editingOriginalPhoto;
+    if(photoChanged){
+      if(currentMenuImageBase64){
+        await withTimeout(db.collection('menuPhotos').doc(menuId).set({imageUrl: currentMenuImageBase64}), 12000);
+      } else if(editingOriginalPhoto){
+        await withTimeout(db.collection('menuPhotos').doc(menuId).delete(), 12000);
+      }
+    }
+
+    showToast(editingMenuId ? 'Menu diperbarui' : 'Menu ditambahkan');
     resetMenuForm();
   }catch(err){
     console.error(err);
@@ -2291,6 +2319,7 @@ document.getElementById('btnCancelEditMenu').addEventListener('click', resetMenu
 function resetMenuForm(){
   editingMenuId = null;
   editingHadPhoto = false;
+  editingOriginalPhoto = null;
   document.getElementById('inpMenuName').value='';
   document.getElementById('inpMenuCategory').value='';
   document.getElementById('inpMenuPrice').value='';
@@ -2425,6 +2454,32 @@ document.getElementById('btnRemovePhoto').addEventListener('click', (e)=>{
   clearMenuPhoto();
 });
 
+/* ============ MIGRASI FOTO LAMA (imageUrl di dokumen 'menu' -> koleksi 'menuPhotos') ============ */
+document.getElementById('btnMigratePhotos').addEventListener('click', async ()=>{
+  const btn = document.getElementById('btnMigratePhotos');
+  const legacy = menuItems.filter(m=>m.imageUrl);
+  if(!legacy.length){ showToast('Tidak ada foto lama yang perlu dipindah'); return; }
+  if(btn.disabled) return;
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  let done = 0;
+  try{
+    for(const item of legacy){
+      btn.textContent = `Memindah foto... (${done+1}/${legacy.length})`;
+      await db.collection('menuPhotos').doc(item.id).set({imageUrl: item.imageUrl});
+      await db.collection('menu').doc(item.id).update({imageUrl: firebase.firestore.FieldValue.delete()});
+      done++;
+    }
+    showToast(`Berhasil memindah ${done} foto ke penyimpanan baru`);
+  }catch(err){
+    console.error(err);
+    showToast(`Migrasi berhenti di tengah (${done}/${legacy.length} berhasil): ${err && err.message ? err.message : 'coba lagi'}`);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+});
+
 /* ============ DELETE CONFIRM (generic: menu / expense) ============ */
 function confirmDelete(type, id, text){
   pendingDelete = {type, id};
@@ -2441,6 +2496,7 @@ document.getElementById('btnConfirmDeleteYes').addEventListener('click', async (
   try{
     if(pendingDelete.type==='menu'){
       await withTimeout(db.collection('menu').doc(pendingDelete.id).delete(), 12000);
+      db.collection('menuPhotos').doc(pendingDelete.id).delete().catch(()=>{});
       showToast('Menu dihapus');
     } else if(pendingDelete.type==='expense'){
       await withTimeout(db.collection('expenses').doc(pendingDelete.id).delete(), 12000);
