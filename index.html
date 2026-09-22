@@ -1655,7 +1655,7 @@ async function loadAdminOrders(){
   const wrap=document.getElementById('adminOrderList'); if(!wrap)return;
   wrap.innerHTML='<div class="loading-row">Memuat...</div>';
   try{
-    const snap=await db.collection('orders').limit(100).get();
+    const snap=await db.collection('orders').where('dateStr','==',todayStr()).get();
     const rows=snap.docs.map(d=>({id:d.id,...d.data()})).filter(o=>o.source==='admin' || o.status==='pending').sort((a,b)=>new Date(b.createdAtClient||0)-new Date(a.createdAtClient||0));
     document.getElementById('adminOrderEmpty').style.display=rows.length?'none':'block';
     wrap.innerHTML=rows.map(o=>{
