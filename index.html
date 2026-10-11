@@ -440,6 +440,33 @@ label:first-child{margin-top:0;}
 .change-row{display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:4px 0;color:var(--teal-800);}
 .change-row.negative{color:var(--rust-600);}
 
+/* ===== SPLASH LOADING ===== */
+#splash{
+  position:fixed;inset:0;z-index:300;
+  background:var(--teal-950);
+  background-image:radial-gradient(circle at 80% -10%, rgba(219,164,60,0.28), transparent 55%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  color:var(--cream-50);text-align:center;padding:24px;
+  transition:opacity .3s ease, visibility .3s ease;
+}
+#splash.hide{opacity:0;visibility:hidden;pointer-events:none;}
+#splash img{width:84px;height:84px;border-radius:50%;border:3px solid var(--gold-500);object-fit:cover;background:var(--cream-100);}
+#splash .sp-title{font-family:'Bebas Neue',cursive;font-size:34px;letter-spacing:1px;line-height:1;margin-top:6px;}
+#splash .sp-sub{font-size:10.5px;letter-spacing:1.5px;color:var(--gold-500);text-transform:uppercase;}
+#splash .sp-track{width:min(260px,70vw);height:8px;border-radius:8px;background:rgba(251,245,228,0.15);overflow:hidden;margin-top:18px;}
+#splash .sp-fill{height:100%;width:0%;border-radius:8px;background:linear-gradient(90deg,var(--teal-500),var(--gold-500));transition:width .35s ease;}
+#splash .sp-text{font-size:12px;color:var(--cream-100);opacity:.85;min-height:18px;}
+
+/* ===== DISKON ===== */
+.disc-row{display:flex;gap:8px;align-items:stretch;}
+.disc-row input{flex:1;min-width:0;}
+.disc-type{display:flex;border:2px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--white);flex-shrink:0;}
+.disc-type button{border:none;background:transparent;padding:0 16px;font-weight:800;font-size:14px;color:var(--ink-600);}
+.disc-type button.active{background:var(--gold-500);color:var(--teal-950);}
+.sum-rows{margin-top:8px;font-size:13px;}
+.sum-rows .sr{display:flex;justify-content:space-between;padding:2px 0;color:var(--ink-600);}
+.sum-rows .sr.disc{color:var(--rust-600);font-weight:700;}
+
 /* ===== ORDERAN ADMIN ===== */
 .admin-order-list{display:flex;flex-direction:column;gap:9px;}
 .admin-order-card{background:var(--white);border:1.5px solid var(--line);border-radius:var(--radius);padding:12px;}
@@ -866,6 +893,13 @@ table.monthly-table.capturing-full td{font-size:12px;}
 </style>
 </head>
 <body>
+<div id="splash">
+  <img src="ikon.png" alt="" onerror="this.style.display='none'"/>
+  <div class="sp-title">WARMINDO SANDAGA</div>
+  <div class="sp-sub">Kasir</div>
+  <div class="sp-track"><div class="sp-fill" id="splashFill"></div></div>
+  <div class="sp-text" id="splashText">Menyiapkan aplikasi...</div>
+</div>
 <div class="app">
 
   <!-- HEADER -->
@@ -1190,6 +1224,15 @@ table.monthly-table.capturing-full td{font-size:12px;}
       <label>Nama Customer (opsional)</label>
       <input type="text" id="inpCustomerName" placeholder="cth: Budi / Meja 3"/>
 
+      <label>Diskon (opsional)</label>
+      <div class="disc-row">
+        <div class="disc-type" id="discTypeToggle">
+          <button type="button" data-type="nominal" class="active">Rp</button>
+          <button type="button" data-type="percent">%</button>
+        </div>
+        <input type="text" inputmode="numeric" id="inpDiscount" placeholder="0"/>
+      </div>
+
       <div style="margin-top:8px;">
         <label>Metode Pembayaran</label>
         <div class="pay-toggle">
@@ -1210,6 +1253,10 @@ table.monthly-table.capturing-full td{font-size:12px;}
         <div class="change-row" id="changeRow"></div>
       </div>
 
+      <div class="sum-rows" id="cartDiscSummary" style="display:none;">
+        <div class="sr"><span>Subtotal</span><span id="cartSubtotalVal">Rp0</span></div>
+        <div class="sr disc"><span id="cartDiscLabel">Diskon</span><span id="cartDiscVal">-Rp0</span></div>
+      </div>
       <div class="total-row">
         <span class="lbl">Total Bayar</span>
         <span class="val" id="cartTotalVal">Rp0</span>
@@ -1237,6 +1284,18 @@ table.monthly-table.capturing-full td{font-size:12px;}
       <div class="empty-state" id="billCartEmpty" style="display:none;padding:16px;">Belum ada item.</div>
       <label>Nama Customer (opsional)</label>
       <input type="text" id="billInpCustomerName" placeholder="cth: Budi / Meja 3"/>
+      <label>Diskon (opsional)</label>
+      <div class="disc-row">
+        <div class="disc-type" id="billDiscTypeToggle">
+          <button type="button" data-type="nominal" class="active">Rp</button>
+          <button type="button" data-type="percent">%</button>
+        </div>
+        <input type="text" inputmode="numeric" id="billInpDiscount" placeholder="0"/>
+      </div>
+      <div class="sum-rows" id="billDiscSummary" style="display:none;">
+        <div class="sr"><span>Subtotal</span><span id="billSubtotalVal">Rp0</span></div>
+        <div class="sr disc"><span id="billDiscLabel">Diskon</span><span id="billDiscVal">-Rp0</span></div>
+      </div>
       <div class="admin-cart-total"><span>Total</span><b id="billCartTotal">Rp0</b></div>
 
       <div style="margin-top:14px;">
@@ -1292,6 +1351,10 @@ table.monthly-table.capturing-full td{font-size:12px;}
         <div class="r-dash"></div>
         <div id="rItems"></div>
         <div class="r-dash"></div>
+        <div id="rDiscWrap" style="display:none;">
+          <div class="r-row"><span>Subtotal</span><span id="rSubtotal">Rp0</span></div>
+          <div class="r-row"><span id="rDiscLabel">Diskon</span><span id="rDisc">-Rp0</span></div>
+        </div>
         <div class="r-row total"><span>TOTAL</span><span id="rTotal">Rp0</span></div>
         <div class="r-row"><span>Metode</span><span id="rMethod">-</span></div>
         <div id="rCashWrap" style="display:none;">
@@ -1351,7 +1414,7 @@ table.monthly-table.capturing-full td{font-size:12px;}
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
 /* ============ FIREBASE CONFIG ============ */
@@ -1364,6 +1427,30 @@ const firebaseConfig = {
   appId: "1:437768743863:web:1af406325e70f7f5889632",
   measurementId: "G-JRVJMF1PXQ"
 };
+/* ============ SPLASH / LOADING BAR ============ */
+const splashEl = document.getElementById('splash');
+const splashFillEl = document.getElementById('splashFill');
+const splashTextEl = document.getElementById('splashText');
+let splashPct = 0, splashDone = false, splashCreep = null;
+function setSplash(pct, text){
+  if(splashDone) return;
+  splashPct = Math.max(splashPct, pct);
+  splashFillEl.style.width = splashPct+'%';
+  if(text) splashTextEl.textContent = text;
+}
+function hideSplash(){
+  if(splashDone) return;
+  setSplash(100, 'Siap digunakan');
+  splashDone = true;
+  clearInterval(splashCreep);
+  setTimeout(()=>{ splashEl.classList.add('hide'); setTimeout(()=>splashEl.remove(), 400); }, 250);
+}
+setSplash(15, 'Menyiapkan aplikasi...');
+// bar merayap pelan sampai 85% selama menunggu data menu
+splashCreep = setInterval(()=>{ if(splashPct<85) setSplash(splashPct + (85-splashPct)*0.12); }, 300);
+// jaring pengaman: jangan pernah menahan kasir lebih dari 8 detik
+setTimeout(hideSplash, 8000);
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 let persistenceEnabled = false;
@@ -1432,6 +1519,50 @@ function formatNumberID(n){
   n = Number(n)||0;
   return n.toLocaleString('id-ID');
 }
+/* ============ DISKON ============ */
+// type: 'nominal' (Rp) atau 'percent' (%). Hasil selalu dibatasi 0..subtotal.
+const cartDiscount = {type:'nominal', value:0};
+const billDiscount = {type:'nominal', value:0};
+function calcDiscountAmount(subtotal, d){
+  if(!d || !d.value || subtotal<=0) return 0;
+  const raw = d.type==='percent' ? Math.round(subtotal * Math.min(d.value,100) / 100) : d.value;
+  return Math.max(0, Math.min(raw, subtotal));
+}
+function discountLabel(type, value){
+  return (type==='percent' && value) ? 'Diskon ('+value+'%)' : 'Diskon';
+}
+function discountFields(subtotal, d){
+  const amount = calcDiscountAmount(subtotal, d);
+  return {subtotal, discount:amount, discountType: amount? d.type : null, discountValue: amount? d.value : 0};
+}
+function syncDiscountUI(d, toggleId, inputId){
+  document.querySelectorAll('#'+toggleId+' button').forEach(b=>b.classList.toggle('active', b.dataset.type===d.type));
+  const input = document.getElementById(inputId);
+  input.placeholder = '0';
+  input.value = d.value ? (d.type==='percent' ? String(d.value) : formatNumberID(d.value)) : '';
+}
+function bindDiscountUI(d, toggleId, inputId, onChange){
+  const input = document.getElementById(inputId);
+  document.querySelectorAll('#'+toggleId+' button').forEach(b=>b.addEventListener('click', ()=>{
+    if(d.type===b.dataset.type) return;
+    d.type = b.dataset.type;
+    d.value = 0;
+    syncDiscountUI(d, toggleId, inputId);
+    onChange();
+  }));
+  input.addEventListener('input', ()=>{
+    let n = Number(input.value.replace(/\D/g,''))||0;
+    if(d.type==='percent' && n>100) n = 100;
+    d.value = n;
+    input.value = n ? (d.type==='percent' ? String(n) : formatNumberID(n)) : '';
+    onChange();
+  });
+}
+function resetCartDiscount(){
+  cartDiscount.type='nominal'; cartDiscount.value=0;
+  syncDiscountUI(cartDiscount, 'discTypeToggle', 'inpDiscount');
+}
+
 /* Ambil nilai numerik murni dari input yang sudah diberi pemisah titik */
 function getCashReceived(){
   const raw = document.getElementById('inpCashReceived').value.replace(/\D/g,'');
@@ -1515,31 +1646,65 @@ document.querySelectorAll('.dock-btn').forEach(btn=>{
   });
 });
 
-/* ============ FIRESTORE: MENU (realtime) ============ */
-db.collection('menu').orderBy('name').onSnapshot(snap=>{
-  menuItems = snap.docs.map(d=>({id:d.id, ...d.data()}));
-  renderCategoryTabs();
-  renderMenuGrid();
+setSplash(35, 'Memuat daftar menu...');
+
+/* Jalankan pekerjaan berat saat browser sedang senggang, supaya kasir langsung bisa dipakai */
+let bgTimer = null;
+function runInBackground(fn, delay){
+  clearTimeout(bgTimer);
+  bgTimer = setTimeout(()=>{
+    if('requestIdleCallback' in window) requestIdleCallback(fn, {timeout:1500});
+    else fn();
+  }, delay||0);
+}
+
+/* Render tahap 2 (background): daftar kelola menu, kategori admin, grid admin, migrasi foto */
+function renderMenuSecondary(){
   renderMenuManageList();
   renderCategoryDatalist();
   renderAdminCategoryTabs();
   renderAdminMenuGrid();
   const legacyPhotoCount = menuItems.filter(m=>m.imageUrl).length;
   document.getElementById('migratePhotoWrap').style.display = legacyPhotoCount ? 'block' : 'none';
+}
+
+let backgroundStarted = false;
+function startBackgroundLoads(){
+  if(backgroundStarted) return;
+  backgroundStarted = true;
+  // foto menu (data base64 berat) dan daftar pengeluaran baru dimuat setelah kasir siap
+  setTimeout(()=>{ startPhotoListener(); }, 400);
+  setTimeout(()=>{ loadExpenseList(); }, 900);
+}
+
+/* ============ FIRESTORE: MENU (realtime) ============ */
+// Tahap 1 (instan): hanya kategori + nama & harga menu di layar kasir.
+db.collection('menu').orderBy('name').onSnapshot(snap=>{
+  menuItems = snap.docs.map(d=>({id:d.id, ...d.data()}));
+  renderCategoryTabs();
+  renderMenuGrid();
+  hideSplash();
+  // Tahap 2 (background): sisanya
+  runInBackground(renderMenuSecondary, 50);
+  startBackgroundLoads();
 }, err=>{
   console.error(err);
   showToast('Gagal memuat menu: cek koneksi Firebase');
+  hideSplash();
+  startBackgroundLoads();
 });
 
-/* ============ FIRESTORE: FOTO MENU (koleksi terpisah, biar koleksi 'menu' tetap ringan/cepat) ============ */
-db.collection('menuPhotos').onSnapshot(snap=>{
-  const map = {};
-  snap.docs.forEach(d=>{ map[d.id] = (d.data()||{}).imageUrl || null; });
-  menuPhotoMap = map;
-  renderMenuManageList();
-}, err=>{
-  console.error(err);
-});
+/* ============ FIRESTORE: FOTO MENU (dimuat di background, setelah kasir siap) ============ */
+function startPhotoListener(){
+  db.collection('menuPhotos').onSnapshot(snap=>{
+    const map = {};
+    snap.docs.forEach(d=>{ map[d.id] = (d.data()||{}).imageUrl || null; });
+    menuPhotoMap = map;
+    runInBackground(renderMenuManageList, 0);
+  }, err=>{
+    console.error(err);
+  });
+}
 
 function renderCategoryDatalist(){
   const cats = [...new Set(menuItems.map(m=>m.category).filter(Boolean))];
@@ -1688,6 +1853,9 @@ async function openBillEditor(id){
     billCart = (o.items||[]).map(i=>({id:i.id,name:i.name,price:Number(i.price)||0,qty:Number(i.qty)||1}));
     billPaymentMethod = null;
     billSearchTerm = '';
+    billDiscount.type = o.discountType || 'nominal';
+    billDiscount.value = Number(o.discountValue)||0;
+    syncDiscountUI(billDiscount, 'billDiscTypeToggle', 'billInpDiscount');
     document.getElementById('billEditorTitle').textContent = 'Order #'+id.slice(-6).toUpperCase();
     document.getElementById('billInpCustomerName').value = o.customerName || '';
     document.getElementById('billInpCashReceived').value='';
@@ -1737,7 +1905,9 @@ function changeBillQty(id, delta){
   if(c.qty<=0) billCart = billCart.filter(x=>x.id!==id);
   renderBillMenuGrid(); renderBillCart(); recalcBillChange(); updateBillActionState();
 }
-function billCartTotal(){ return billCart.reduce((s,c)=>s+c.price*c.qty,0); }
+function billSubtotal(){ return billCart.reduce((s,c)=>s+c.price*c.qty,0); }
+function billDiscountAmount(){ return calcDiscountAmount(billSubtotal(), billDiscount); }
+function billCartTotal(){ return billSubtotal() - billDiscountAmount(); }
 function renderBillCart(){
   const list=document.getElementById('billCartList');
   document.getElementById('billCartEmpty').style.display = billCart.length? 'none':'block';
@@ -1760,8 +1930,16 @@ function renderBillCart(){
     row.querySelector('.qminus').addEventListener('click',()=>changeBillQty(id,-1));
     row.querySelector('.qplus').addEventListener('click',()=>changeBillQty(id,1));
   });
+  const bDisc = billDiscountAmount();
+  document.getElementById('billDiscSummary').style.display = bDisc>0 ? 'block' : 'none';
+  document.getElementById('billSubtotalVal').textContent = formatRupiah(billSubtotal());
+  document.getElementById('billDiscLabel').textContent = discountLabel(billDiscount.type, billDiscount.value);
+  document.getElementById('billDiscVal').textContent = '-'+formatRupiah(bDisc);
   document.getElementById('billCartTotal').textContent = formatRupiah(billCartTotal());
 }
+bindDiscountUI(billDiscount, 'billDiscTypeToggle', 'billInpDiscount', ()=>{
+  renderBillCart(); recalcBillChange(); updateBillActionState();
+});
 document.getElementById('billPayCash').addEventListener('click', ()=>setBillPayment('cash'));
 document.getElementById('billPayQris').addEventListener('click', ()=>setBillPayment('qris'));
 function setBillPayment(method){
@@ -1810,6 +1988,7 @@ document.getElementById('btnSaveBillChanges').addEventListener('click', async ()
   try{
     await withTimeout(db.collection('orders').doc(billOrderId).update({
       items: billCart.map(c=>({id:c.id,name:c.name,price:c.price,qty:c.qty})),
+      ...discountFields(billSubtotal(), billDiscount),
       total: billCartTotal(),
       customerName
     }), 12000);
@@ -1832,6 +2011,7 @@ document.getElementById('btnCompleteBillPayment').addEventListener('click', asyn
   const customerName = document.getElementById('billInpCustomerName').value.trim() || null;
   const updateData = {
     items: billCart.map(c=>({id:c.id,name:c.name,price:c.price,qty:c.qty})),
+    ...discountFields(billSubtotal(), billDiscount),
     total,
     payment: billPaymentMethod,
     cashReceived,
@@ -1842,7 +2022,7 @@ document.getElementById('btnCompleteBillPayment').addEventListener('click', asyn
   try{
     await withTimeout(db.collection('orders').doc(billOrderId).update(updateData), 12000);
     const change = billPaymentMethod==='cash' ? (cashReceived - total) : 0;
-    fillReceipt(billOrderId, {items:updateData.items, total, payment:billPaymentMethod, cashReceived, customerName}, now, change);
+    fillReceipt(billOrderId, updateData, now, change);
     closeOverlay('overlayBillEditor');
     openOverlay('overlaySuccess');
     showToast('Pembayaran selesai');
@@ -1869,11 +2049,14 @@ function changeQty(id, delta){
   if(!c) return;
   c.qty += delta;
   if(c.qty<=0) cart = cart.filter(c=>c.id!==id);
+  if(cart.length===0) resetCartDiscount();
   renderCartSheet();
   renderMenuGrid();
   updateCartBar();
 }
-function cartTotal(){ return cart.reduce((s,c)=>s+c.price*c.qty,0); }
+function cartSubtotal(){ return cart.reduce((s,c)=>s+c.price*c.qty,0); }
+function cartDiscountAmount(){ return calcDiscountAmount(cartSubtotal(), cartDiscount); }
+function cartTotal(){ return cartSubtotal() - cartDiscountAmount(); }
 function cartCount(){ return cart.reduce((s,c)=>s+c.qty,0); }
 
 function updateCartBar(){
@@ -1918,10 +2101,19 @@ function renderCartSheet(){
     row.querySelector('.qminus').addEventListener('click', ()=>changeQty(id,-1));
     row.querySelector('.qplus').addEventListener('click', ()=>changeQty(id,1));
   });
+  const cDisc = cartDiscountAmount();
+  document.getElementById('cartDiscSummary').style.display = cDisc>0 ? 'block' : 'none';
+  document.getElementById('cartSubtotalVal').textContent = formatRupiah(cartSubtotal());
+  document.getElementById('cartDiscLabel').textContent = discountLabel(cartDiscount.type, cartDiscount.value);
+  document.getElementById('cartDiscVal').textContent = '-'+formatRupiah(cDisc);
   document.getElementById('cartTotalVal').textContent = formatRupiah(cartTotal());
   recalcChange();
   updateCheckoutState();
 }
+bindDiscountUI(cartDiscount, 'discTypeToggle', 'inpDiscount', ()=>{
+  renderCartSheet();
+  updateCartBar();
+});
 
 /* payment method toggle */
 document.getElementById('payCash').addEventListener('click', ()=>setPayment('cash'));
@@ -1987,6 +2179,7 @@ document.getElementById('btnSaveOpenBill').addEventListener('click', async ()=>{
   try{
     await withTimeout(db.collection('orders').add({
       items: cart.map(c=>({id:c.id, name:c.name, price:c.price, qty:c.qty})),
+      ...discountFields(cartSubtotal(), cartDiscount),
       total: cartTotal(),
       payment: null,
       cashReceived: null,
@@ -1999,6 +2192,7 @@ document.getElementById('btnSaveOpenBill').addEventListener('click', async ()=>{
     }), 12000);
     showToast('Transaksi disimpan sebagai Open Bill');
     cart = [];
+    resetCartDiscount();
     paymentMethod = null;
     document.getElementById('inpCashReceived').value='';
     document.getElementById('inpCustomerName').value='';
@@ -2024,6 +2218,7 @@ document.getElementById('btnCheckout').addEventListener('click', async ()=>{
   const now = new Date();
   const order = {
     items: cart.map(c=>({id:c.id, name:c.name, price:c.price, qty:c.qty})),
+    ...discountFields(cartSubtotal(), cartDiscount),
     total: cartTotal(),
     payment: paymentMethod,
     cashReceived: paymentMethod==='cash' ? getCashReceived() : null,
@@ -2061,6 +2256,7 @@ document.getElementById('btnCheckout').addEventListener('click', async ()=>{
       showToast('Tersimpan di perangkat — akan tersinkron otomatis saat koneksi membaik');
     }
     cart = [];
+    resetCartDiscount();
     paymentMethod = null;
     if(pendingAdminOrderId){ pendingAdminOrderId=null; window.__pendingAdminDateStr=null; loadAdminOrders(); }
     document.getElementById('inpCashReceived').value='';
@@ -2153,6 +2349,15 @@ function fillReceipt(orderId, order, now, change){
       <div class="r-item-sub"><span>${i.qty} x ${formatRupiah(i.price)}</span></div>
     </div>
   `).join('');
+  const discWrap = document.getElementById('rDiscWrap');
+  if(order.discount > 0){
+    discWrap.style.display = 'block';
+    document.getElementById('rSubtotal').textContent = formatRupiah(order.subtotal);
+    document.getElementById('rDiscLabel').textContent = discountLabel(order.discountType, order.discountValue);
+    document.getElementById('rDisc').textContent = '-'+formatRupiah(order.discount);
+  } else {
+    discWrap.style.display = 'none';
+  }
   document.getElementById('rTotal').textContent = formatRupiah(order.total);
   document.getElementById('rMethod').textContent = order.payment==='cash' ? 'Tunai' : 'QRIS';
   const cashWrap = document.getElementById('rCashWrap');
@@ -3050,8 +3255,7 @@ function escapeHtml(str){
   return String(str||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
-/* init */
-loadExpenseList();
+/* init: loadExpenseList() dijalankan di background lewat startBackgroundLoads() */
 </script>
 </body>
 </html>
