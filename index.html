@@ -514,6 +514,16 @@ label:first-child{margin-top:0;}
   background:var(--rust-100);border-color:var(--rust-600);color:var(--rust-700);
 }
 .stock-toggle svg{width:17px;height:17px;flex-shrink:0;}
+.stock-toggle.new-toggle{background:var(--cream-100);border-color:var(--line);color:var(--ink-600);}
+.stock-toggle.new-toggle.is-new{background:var(--gold-100);border-color:var(--gold-600);color:var(--teal-950);}
+.mi-badge-new{
+  display:inline-block;margin-left:6px;
+  background:var(--gold-100);color:var(--teal-950);border:1px solid var(--gold-600);
+  font-size:9.5px;font-weight:800;letter-spacing:0.3px;
+  padding:2px 7px;border-radius:999px;text-transform:uppercase;vertical-align:middle;
+}
+.icon-btn.toggle-new-menu.is-new{color:var(--gold-600);}
+.icon-btn.toggle-new-menu.is-new svg{fill:currentColor;}
 
 /* ===== FOTO MENU (paste/upload jadi base64) ===== */
 .photo-drop{
@@ -951,6 +961,11 @@ table.monthly-table.capturing-full td{font-size:12px;}
         <button type="button" class="stock-toggle" id="btnToggleSoldOut" data-soldout="false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path id="soldOutIconPath" d="M20 6L9 17l-5-5"/></svg>
           <span id="soldOutLabel">Tersedia</span>
+        </button>
+        <label>Penanda Menu Baru</label>
+        <button type="button" class="stock-toggle new-toggle" id="btnToggleNew" data-new="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>
+          <span id="newLabel">Tidak ada stempel</span>
         </button>
         <label>Foto Menu (opsional)</label>
         <div class="photo-drop" id="menuPhotoDrop" tabindex="0">
@@ -1487,6 +1502,7 @@ let editingHadPhoto = false; // apakah menu yang sedang diedit sudah punya foto 
 let editingOriginalPhoto = null; // foto yang sudah tersimpan di menuPhotos saat form edit dibuka (buat deteksi perubahan)
 let currentMenuImageBase64 = null; // foto menu (base64) yang sedang disiapkan di form
 let menuPhotoMap = {}; // {menuId: imageUrl base64} — dari koleksi terpisah menuPhotos, supaya koleksi 'menu' tetap ringan
+let currentMenuIsNew = false; // penanda 'Menu Baru' (stempel di halaman menu pelanggan)
 let currentMenuSoldOut = false; // status stok menu yang sedang disiapkan di form
 let pendingDelete = null; // {type,id}
 let adminCart = [];
@@ -2413,9 +2429,12 @@ function renderMenuManageList(){
         <div class="menu-list-row ${m.soldOut?'sold-out':''}" data-id="${m.id}">
           ${menuPhotoMap[m.id] ? `<img class="mi-thumb ${m.soldOut?'sold-out':''}" src="${escapeHtml(menuPhotoMap[m.id])}" alt="">` : `<div class="mi-thumb-empty"></div>`}
           <div class="mi-info">
-            <div class="mi-name">${escapeHtml(m.name)}${m.soldOut?'<span class="mi-badge-soldout">Habis</span>':''}</div>
+            <div class="mi-name">${escapeHtml(m.name)}${m.soldOut?'<span class="mi-badge-soldout">Habis</span>':''}${m.isNew?'<span class="mi-badge-new">Baru</span>':''}</div>
             <div class="mi-meta">${formatRupiah(m.price)}</div>
           </div>
+          <button class="icon-btn toggle-new-menu ${m.isNew?'is-new':''}" title="${m.isNew?'Hapus stempel Menu Baru':'Beri stempel Menu Baru'}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>
+          </button>
           <button class="icon-btn toggle-soldout-menu" title="${m.soldOut?'Tandai tersedia':'Tandai habis'}">
             ${m.soldOut
               ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`
@@ -2426,6 +2445,24 @@ function renderMenuManageList(){
         </div>
       `).join('');
   }).join('');
+
+  wrap.querySelectorAll('.toggle-new-menu').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.closest('.menu-list-row').dataset.id;
+      const item = menuItems.find(m=>m.id===id);
+      if(!item) return;
+      btn.disabled = true;
+      try{
+        await withTimeout(db.collection('menu').doc(id).update({isNew: !item.isNew}), 12000);
+        showToast(!item.isNew ? 'Stempel Menu Baru dipasang' : 'Stempel Menu Baru dilepas');
+      }catch(err){
+        console.error(err);
+        showToast('Gagal mengubah penanda Menu Baru');
+      }finally{
+        btn.disabled = false;
+      }
+    });
+  });
 
   wrap.querySelectorAll('.toggle-soldout-menu').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
@@ -2454,6 +2491,7 @@ function renderMenuManageList(){
       document.getElementById('inpMenuCategory').value = item.category||'';
       document.getElementById('inpMenuPrice').value = item.price;
       setSoldOutUI(!!item.soldOut);
+      setNewUI(!!item.isNew);
       const existingPhoto = menuPhotoMap[id] || null;
       editingHadPhoto = !!existingPhoto;
       editingOriginalPhoto = existingPhoto;
@@ -2491,7 +2529,7 @@ document.getElementById('btnSaveMenu').addEventListener('click', async ()=>{
   try{
     // Koleksi 'menu' sengaja TIDAK menyimpan foto (biar tetap ringan & cepat dimuat).
     // Foto (base64, bisa ratusan KB) disimpan terpisah di koleksi 'menuPhotos'.
-    const payload = {name, category, price, soldOut: currentMenuSoldOut};
+    const payload = {name, category, price, soldOut: currentMenuSoldOut, isNew: currentMenuIsNew};
     let menuId = editingMenuId;
     if(editingMenuId){
       await withTimeout(db.collection('menu').doc(editingMenuId).update(payload), 12000);
@@ -2530,6 +2568,7 @@ function resetMenuForm(){
   document.getElementById('inpMenuPrice').value='';
   clearMenuPhoto();
   setSoldOutUI(false);
+  setNewUI(false);
   document.getElementById('btnSaveMenu').textContent = 'Simpan Menu';
   document.getElementById('btnCancelEditMenu').style.display = 'none';
 }
@@ -2552,6 +2591,18 @@ function setSoldOutUI(isSoldOut){
 }
 document.getElementById('btnToggleSoldOut').addEventListener('click', ()=>{
   setSoldOutUI(!currentMenuSoldOut);
+});
+
+/* ============ PENANDA MENU BARU (stempel di halaman menu pelanggan) ============ */
+function setNewUI(isNew){
+  currentMenuIsNew = !!isNew;
+  const btn = document.getElementById('btnToggleNew');
+  btn.dataset.new = String(currentMenuIsNew);
+  btn.classList.toggle('is-new', currentMenuIsNew);
+  document.getElementById('newLabel').textContent = currentMenuIsNew ? 'Menu Baru (ada stempel)' : 'Tidak ada stempel';
+}
+document.getElementById('btnToggleNew').addEventListener('click', ()=>{
+  setNewUI(!currentMenuIsNew);
 });
 
 /* ============ FOTO MENU: paste (Ctrl+V) / pilih file -> dikompres jadi base64 ============ */
